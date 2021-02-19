@@ -1,87 +1,128 @@
-
-<!DOCTYPE html>
-<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
-<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
-<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js"><!--<![endif]-->
-<head>
-  <meta charset="utf-8">
-  <title>
+<!doctype html>
+<html class="no-js" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
     
   小型 IT 公司架构现状 - 皮皮是条科技
   
-
   </title>
-  <meta name="author" content="">
-  <meta name="description" content="">
-
-  <meta name="HandheldFriendly" content="True">
-  <meta name="MobileOptimized" content="320">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   
-  <link href="asset/css/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  
   <link href="atom.xml" rel="alternate" title="皮皮是条科技" type="application/atom+xml">
-  <script src="asset/js/modernizr-2.0.js"></script>
-  <script src="asset/js/jquery.min.js"></script>
-  <style type="text/css">
-  .cat-children-p{ padding: 6px 0px;}
-  .hljs{background: none;}
-  </style>
-  <script type="text/javascript">
-  var isAddSildbar = true;
-  </script>
-  <script src="asset/js/octopress.js" type="text/javascript"></script>
-</head>
+    <link rel="stylesheet" href="asset/css/foundation.min.css" />
+    <link rel="stylesheet" href="asset/css/docs.css" />
+    <script src="asset/js/vendor/modernizr.js"></script>
+    <script src="asset/js/vendor/jquery.js"></script>
+ 
 <script type="text/javascript">
-//链接新开窗口
-function addBlankTargetForLinks () {
-  $('a[href^="http"]').each(function(){
-      $(this).attr('target', '_blank');
-  });
-}
-$(document).ready(function(event) {
-  addBlankTargetForLinks();
-});
+  function before_search(){
+    var searchVal = 'site: ' + document.getElementById('search_input').value;
+    document.getElementById('search_q').value = searchVal;
+    return true;
+  }
 </script>
-<body   >
-  <header role="banner"><hgroup>
-  <h1><a href="index.html">皮皮是条科技</a></h1>
-  
-    <h2></h2>
-  
-</hgroup>
+  </head>
+  <body class="antialiased hide-extras">
+    
+    <div class="marketing off-canvas-wrap" data-offcanvas>
+      <div class="inner-wrap">
 
-</header>
-  <nav role="navigation"><ul class="subscription" data-subscription="rss">
-  <li><a href="atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
-  
-</ul>
-  
-<form action="http://google.com/search" method="get">
-  <fieldset role="search">
-    <input type="hidden" name="q" value="site:" />
-    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
-  </fieldset>
+
+<nav class="top-bar docs-bar hide-for-small" data-topbar>
+
+
+  <section class="top-bar-section">
+  <div class="row">
+      <div style="position: relative;width:100%;"><div style="position: absolute; width:100%;">
+        <ul id="main-menu" class="left">
+        
+        <li id=""><a target="self" href="index.html">Home</a></li>
+        
+        <li id=""><a target="_self" href="archives.html">Archives</a></li>
+        
+        </ul>
+
+        <ul class="right" id="search-wrap">
+          <li>
+<form target="_blank" onsubmit="return before_search();" action="https://google.com/search" method="get">
+    <input type="hidden" id="search_q" name="q" value="" />
+    <input tabindex="1" type="search" id="search_input"  placeholder="Search"/>
 </form>
-  
-<ul class="main-navigation">
-
-  <li id=""><a target="self" href="index.html">Home</a></li>
-
-  <li id=""><a target="_self" href="archives.html">Archives</a></li>
-
-</ul>
+</li>
+          </ul>
+      </div></div>
+  </div>
+  </section>
 
 </nav>
-  <div id="main">
-    <div id="content"> 
-<div>
-	<article class="hentry" role="article">
-	<header>
-			  	<h1 class="entry-title">小型 IT 公司架构现状</h1>
-				<p class="meta"><time datetime="2021-02-05T15:42:16+08:00" pubdate data-updated="true">2021/02/05</time></p>
-			 </header>
-		  	<div class="entry-content">
-			  	<h2 id="toc_0">背景</h2>
+
+        <nav class="tab-bar show-for-small">
+  <a href="javascript:void(0)" class="left-off-canvas-toggle menu-icon">
+    <span> &nbsp; 皮皮是条科技</span>
+  </a>
+</nav>
+
+<aside class="left-off-canvas-menu">
+      <ul class="off-canvas-list">
+        
+        <li><a target="self" href="index.html">Home</a></li>
+        
+        <li><a target="_self" href="archives.html">Archives</a></li>
+        
+
+    <li><label>Categories</label></li>
+
+        
+            <li><a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9AKong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html">从零开始：Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></li>
+        
+            <li><a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9Aflutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html">从零开始：flutter 开发游戏汇总</a></li>
+        
+            <li><a href="%E6%9D%82%E8%B0%88.html">杂谈</a></li>
+         
+
+      </ul>
+    </aside>
+
+<a class="exit-off-canvas" href="#"></a>
+
+
+        <section id="main-content" role="main" class="scroll-container">
+        
+       
+
+ <script type="text/javascript">
+  $(function(){
+    $('#menu_item_index').addClass('is_active');
+  });
+</script>
+<div class="row">
+  <div class="large-8 medium-8 columns">
+      <div class="markdown-body article-wrap">
+       <div class="article">
+          
+          <h1>小型 IT 公司架构现状</h1>
+     
+        <div class="read-more clearfix">
+          <span class="date">2021/02/05</span>
+
+          <span>posted in&nbsp;</span> 
+          
+              <span class="posted-in"><a href='%E6%9D%82%E8%B0%88.html'>杂谈</a></span>
+           
+         
+          <span class="comments">
+            
+
+            
+          </span>
+
+        </div>
+      </div><!-- article -->
+
+      <div class="article-content">
+      <h2 id="toc_0">背景</h2>
 
 <p>尽管现在各种微服务架构，云原生体系横行，实践的经验和分享也可以经常从各类公众号上看到，但是这些对小型 IT 公司的帮助还是十分有限。为什么呢，我从 “往哪迁”，“怎么迁” 两方面分析：</p>
 
@@ -392,118 +433,147 @@ $(document).ready(function(event) {
 <li>合理运用技术工具。一群应届生基于 SpringCloud 的开发成本，可能要比一群 PHP 老司机低且更可靠。</li>
 </ol>
 
-			</div>
 
-		
-	  
-		<footer>
-		 <p class="meta">
+    
 
-			<strong>Categories:</strong>&nbsp; 
-			<span class="categories">
-			
-			    <a class='category' href='%E6%9D%82%E8%B0%88.html'>杂谈</a>&nbsp;
-			 
-			</span>
-		    </p>
-		    <p class="meta">
+      </div>
+
+      <div class="row">
+        <div class="large-6 columns">
+        <p class="text-left" style="padding:15px 0px;">
+      
+          <a href="16136273338891.html" 
+          title="Previous Post: 小公司最怕什么--与行业水平脱轨">&laquo; 小公司最怕什么--与行业水平脱轨</a>
+      
+        </p>
+        </div>
+        <div class="large-6 columns">
+      <p class="text-right" style="padding:15px 0px;">
+      
+          <a  href="16106134732911.html" 
+          title="Next Post: Kong API Gateway 落地 Kubernetes（零）：启程">Kong API Gateway 落地 Kubernetes（零）：启程 &raquo;</a>
+      
+      </p>
+        </div>
+      </div>
+      <div class="comments-wrap">
+        <div class="share-comments">
+          
+
+          
+
+          
+        </div>
+      </div>
+    </div><!-- article-wrap -->
+  </div><!-- large 8 -->
+
+
+
+
+ <div class="large-4 medium-4 columns">
+  <div class="hide-for-small">
+    <div id="sidebar" class="sidebar">
+          <div id="site-info" class="site-info">
+            
+                <h1>皮皮是条科技</h1>
+                <div class="site-des"></div>
+                <div class="social">
+
+
+
+
+
+
+
+
+
+<a target="_blank" class="github" target="_blank" href="github.com/yuyulei" title="GitHub">GitHub</a>
+
+  <a target="_blank" class="rss" href="atom.xml" title="RSS">RSS</a>
+                
+              	 </div>
+          	</div>
+
+             
+
+              <div id="site-categories" class="side-item ">
+                <div class="side-header">
+                  <h2>Categories</h2>
+                </div>
+                <div class="side-content">
+
+      	<p class="cat-list">
+        
+            <a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9AKong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html"><strong>从零开始：Kong API Gateway 网关在 Kubernetes 集群的落地实战</strong></a>
+        
+            <a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9Aflutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html"><strong>从零开始：flutter 开发游戏汇总</strong></a>
+        
+            <a href="%E6%9D%82%E8%B0%88.html"><strong>杂谈</strong></a>
+         
+        </p>
+
+
+                </div>
+              </div>
+
+              <div id="site-categories" class="side-item">
+                <div class="side-header">
+                  <h2>Recent Posts</h2>
+                </div>
+                <div class="side-content">
+                <ul class="posts-list">
+	      
 		      
-		 </p>
-	    
-		<div class="sharing">
+			      <li class="post">
+			        <a href="16136273338891.html">小公司最怕什么--与行业水平脱轨</a>
+			      </li>
+		     
 		  
-          
+		      
+			      <li class="post">
+			        <a href="16125109367436.html">小型 IT 公司架构现状</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="16106134732911.html">Kong API Gateway 落地 Kubernetes（零）：启程</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="16106134534236.html"></a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="16106120160541.html">英雄（零）</a>
+			      </li>
+		     
+		   
+		  		</ul>
+                </div>
+              </div>
+        </div><!-- sidebar -->
+      </div><!-- hide for small -->
+</div><!-- large 4 -->
 
-          
+</div><!-- row -->
 
-		</div>
-
-	    <p class="meta">
-	    
-	        <a class="basic-alignment left" href="16136273338891.html" 
-	        title="Previous Post: 小公司最怕什么--与行业水平脱轨">&laquo; 小公司最怕什么--与行业水平脱轨</a>
-	    
-	    
-	        <a class="basic-alignment right" href="16106134732911.html" 
-	        title="Next Post: Kong API Gateway 落地 Kubernetes（零）：启程">Kong API Gateway 落地 Kubernetes（零）：启程 &raquo;</a>
-	    
-	    </p>
-	  </footer>
-	</article>
+ <div class="page-bottom clearfix">
+  <div class="row">
+   <p class="copyright">Copyright &copy; 2015
+Powered by <a target="_blank" href="http://www.mweb.im">MWeb</a>,&nbsp; 
+Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
+  </div>
 </div>
- <aside class="sidebar"> 
 
-	<section>
-	  <h1>Categories</h1>
-	  <ul id="recent_posts">
-	  
-	      <li class="post">
-	        <a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9AKong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html"><strong>从零开始：Kong API Gateway 网关在 Kubernetes 集群的落地实战&nbsp;(2)</strong></a>
-	        
-	        
-	        
-	      </li>
-	  
-	      <li class="post">
-	        <a href="%E4%BB%8E%E9%9B%B6%E5%BC%80%E5%A7%8B%EF%BC%9Aflutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html"><strong>从零开始：flutter 开发游戏汇总&nbsp;(1)</strong></a>
-	        
-	        
-	        
-	      </li>
-	  
-	      <li class="post">
-	        <a href="%E6%9D%82%E8%B0%88.html"><strong>杂谈&nbsp;(2)</strong></a>
-	        
-	        
-	        
-	      </li>
-	   
-	  </ul>
-	</section>
-	<section>
-	  <h1>Recent Posts</h1>
-	  <ul id="recent_posts">
-	  
-	      
-		      <li class="post">
-		        <a href="16136273338891.html">小公司最怕什么--与行业水平脱轨</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="16125109367436.html">小型 IT 公司架构现状</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="16106134732911.html">Kong API Gateway 落地 Kubernetes（零）：启程</a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="16106134534236.html"></a>
-		      </li>
-	     
-	  
-	      
-		      <li class="post">
-		        <a href="16106120160541.html">英雄（零）</a>
-		      </li>
-	     
-	   
-	  </ul>
-	</section>
-	
-</aside> </div></div>
-  <footer role="contentinfo"><p>
-  Copyright &copy; 2014 -  -
-  <span class="credit">Powered by <a target="_blank" href="http://www.mweb.im">MWeb</a> &nbsp;&nbsp; Theme by <a href="http://octopress.org">Octopress</a></span>
-</p>
-
-</footer>
+        </section>
+      </div>
+    </div>
 
 
 
@@ -523,103 +593,91 @@ $(document).ready(function(event) {
 
 
 <style type="text/css">
-  
+figure{margin: 0;padding: 0;}
+figcaption{text-align:center;}
+
 /* PrismJS 1.14.0
-https://prismjs.com/download.html#themes=prism-solarizedlight&languages=markup+css+clike+javascript */
-/*
- Solarized Color Schemes originally by Ethan Schoonover
- http://ethanschoonover.com/solarized
-
- Ported for PrismJS by Hector Matos
- Website: https://krakendev.io
- Twitter Handle: https://twitter.com/allonsykraken)
-*/
-
-/*
-SOLARIZED HEX
---------- -------
-base03    #002b36
-base02    #073642
-base01    #586e75
-base00    #657b83
-base0     #839496
-base1     #93a1a1
-base2     #eee8d5
-base3     #fdf6e3
-yellow    #b58900
-orange    #cb4b16
-red       #dc322f
-magenta   #d33682
-violet    #6c71c4
-blue      #268bd2
-cyan      #2aa198
-green     #859900
-*/
+ http://prismjs.com/download.html#themes=prism&languages=markup+css+clike+javascript */
+/**
+ * prism.js default theme for JavaScript, CSS and HTML
+ * Based on dabblet (http://dabblet.com)
+ * @author Lea Verou
+ */
 
 code[class*="language-"],
 pre[class*="language-"] {
-  color: #657b83; /* base00 */
-  font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-  text-align: left;
-  white-space: pre;
-  word-spacing: normal;
-  word-break: normal;
-  word-wrap: normal;
-
-  line-height: 1.5;
-
-  -moz-tab-size: 4;
-  -o-tab-size: 4;
-  tab-size: 4;
-
-  -webkit-hyphens: none;
-  -moz-hyphens: none;
-  -ms-hyphens: none;
-  hyphens: none;
+    color: black;
+    background: none;
+    text-shadow: 0 1px white;
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    word-wrap: normal;
+    line-height: 1.5;
+    
+    -moz-tab-size: 4;
+    -o-tab-size: 4;
+    tab-size: 4;
+    
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    hyphens: none;
 }
 
 pre[class*="language-"]::-moz-selection, pre[class*="language-"] ::-moz-selection,
 code[class*="language-"]::-moz-selection, code[class*="language-"] ::-moz-selection {
-  background: #073642; /* base02 */
+    text-shadow: none;
+    background:#b3d4fc;
 }
 
 pre[class*="language-"]::selection, pre[class*="language-"] ::selection,
 code[class*="language-"]::selection, code[class*="language-"] ::selection {
-  background: #073642; /* base02 */
+    text-shadow: none;
+    background: #b3d4fc;
+}
+
+@media print {
+    code[class*="language-"],
+    pre[class*="language-"] {
+        text-shadow: none;
+    }
 }
 
 /* Code blocks */
 pre[class*="language-"] {
-  padding: 1em;
-  margin: .5em 0;
-  overflow: auto;
-  border-radius: 0.3em;
+    padding: 1em;
+    margin: .5em 0;
+    overflow: auto;
 }
 
 :not(pre) > code[class*="language-"],
 pre[class*="language-"] {
-  background-color: #fdf6e3; /* base3 */
+    background: #F7F7F7;
 }
 
 /* Inline code */
 :not(pre) > code[class*="language-"] {
-  padding: .1em;
-  border-radius: .3em;
+    padding: .1em;
+    border-radius: .3em;
+    white-space: normal;
 }
 
 .token.comment,
 .token.prolog,
 .token.doctype,
 .token.cdata {
-  color: #93a1a1; /* base1 */
+    color: slategray;
 }
 
 .token.punctuation {
-  color: #586e75; /* base01 */
+    color: #999;
 }
 
 .namespace {
-  opacity: .7;
+    opacity: .7;
 }
 
 .token.property,
@@ -629,7 +687,7 @@ pre[class*="language-"] {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: #268bd2; /* blue */
+    color: #905;
 }
 
 .token.selector,
@@ -637,43 +695,46 @@ pre[class*="language-"] {
 .token.string,
 .token.char,
 .token.builtin,
-.token.url,
 .token.inserted {
-  color: #2aa198; /* cyan */
+    color: #690;
 }
 
-.token.entity {
-  color: #657b83; /* base00 */
-  background: #eee8d5; /* base2 */
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+    color: #9a6e3a;
+    background: hsla(0, 0%, 100%, .5);
 }
 
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-  color: #859900; /* green */
+    color: #07a;
 }
 
 .token.function,
 .token.class-name {
-  color: #b58900; /* yellow */
+    color: #DD4A68;
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-  color: #cb4b16; /* orange */
+    color: #e90;
 }
 
 .token.important,
 .token.bold {
-  font-weight: bold;
+    font-weight: bold;
 }
 .token.italic {
-  font-style: italic;
+    font-style: italic;
 }
 
 .token.entity {
-  cursor: help;
+    cursor: help;
 }
 
 
@@ -720,9 +781,28 @@ pre[class*="language-"].line-numbers > code {
         }
 
 </style>
+
   
     
 
+    <script src="asset/js/foundation.min.js"></script>
+    <script>
+      $(document).foundation();
+      function fixSidebarHeight(){
+        var w1 = $('.markdown-body').height();
+          var w2 = $('#sidebar').height();
+          if (w1 > w2) { $('#sidebar').height(w1); };
+      }
+      $(function(){
+        fixSidebarHeight();
+      })
+      $(window).load(function(){
+          fixSidebarHeight();
+      });
+     
+    </script>
 
-</body>
+
+
+  </body>
 </html>
