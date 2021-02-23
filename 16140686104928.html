@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  英雄（零） - 皮皮是条科技
+  Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化 - 皮皮是条科技
   
   </title>
   
@@ -102,14 +102,14 @@
       <div class="markdown-body article-wrap">
        <div class="article">
           
-          <h1>英雄（零）</h1>
+          <h1>Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化</h1>
      
         <div class="read-more clearfix">
-          <span class="date">2021/01/14</span>
+          <span class="date">2021/02/23</span>
 
           <span>posted in&nbsp;</span> 
           
-              <span class="posted-in"><a href='flutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html'>flutter 开发游戏汇总</a></span>
+              <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
            
          
           <span class="comments">
@@ -122,39 +122,70 @@
       </div><!-- article -->
 
       <div class="article-content">
-      <h2 id="toc_0">缘由</h2>
+      <p>网关顺利搭起来了，接下来就要验收的时候了。我针对 Kong Gateway + Kubernetes 的形式进行了一些基本操作的验收，包括创建，重启，升级等。</p>
 
-<p>最近看到有文字类游戏的视频推送，看了下觉得还挺有意思的，正好最近也在学习 flutter ，就想开发一款这类主题的游戏。</p>
+<h2 id="toc_0">后端服务背景</h2>
 
-<h2 id="toc_1">准备</h2>
+<p>后端服务的结构是 nginx + fpm，整体打包成一个镜像，以 deployment 的形式在 K8s 集群中部署。链路架构为</p>
 
-<h3 id="toc_2">用户群体</h3>
+<p><img src="media/16140686104928/16140688900376.jpg" alt="请求链路流程"/></p>
 
-<p>对口用户分两类：</p>
+<p>关于为什么在 Kong 网关前嵌套一个阿里云默认 SLB 的原因在之前的文章中有提到，这个不影响本次的验收。</p>
 
-<ul>
-<li>中年人：有时间，对传统汉字有兴趣（因为我之前看到我丈人，丈母娘对成语类的游戏有兴趣）。</li>
-<li>小朋友（小学生）：正在学习汉字，有偏旁，读音，组词等方面的学习。</li>
-</ul>
+<h2 id="toc_1">稳定性验收</h2>
 
-<p>另外像我这种有兴趣，这一类部分年龄。</p>
+<p>我在新建部署，重启实例和滚动升级过程中，都会发起一定并发的请求。在多实例互为备份的情况下，我期望做这些操作对服务稳定性是透明的。实际验收中，遇到了以下几个问题：</p>
 
-<h3 id="toc_3">游戏模式</h3>
+<h3 id="toc_2">实例刚新建后遇到 5xx 报错</h3>
 
-<p>游戏模式参考王者荣耀，有几类:</p>
+<p>我们将 nginx 和 fpm 集中在一个容器里，这里就涉及到谁先运行的问题，两者之间总归有一点间隙。之前的问题就是 nginx 先启动后开始接收请求，但是对应的 fpm 还没准备好，因此产生了报错。</p>
 
-<ul>
-<li>娱乐模式：适合不同用户类别，例如小学生识字，准备“汉字节目”竞赛等，触发每日成就。</li>
-<li>排位模式：连线其他用户一起答题。可能初期开发难度大！</li>
-</ul>
+<p>改进: 先运行 fpm 后运行 nginx，修改 Dockerfile 文件，</p>
 
-<h3 id="toc_4">盈利</h3>
+<pre><code class="language-text">CMD service php5.6-fpm start &amp;&amp; nginx -g &quot;daemon off;&quot;
+</code></pre>
 
-<p>直通卡：可以在娱乐模式中使用，跳过当前题目。</p>
+<h3 id="toc_3">升级过程中，Kong Gateway 显示实例 DNS error.</h3>
 
-<p>待定：类王者荣耀虚拟游戏周边，皮肤，语音包等。</p>
+<p>现象是升级过程中，出现后端服务不可用。我们选择的升级模式是滚动升级，是新建一个新版的实例后，再缩一个老版本的实例，如此滚动，直到完成升级。升级过程中，理论上不应该出现此类异常。</p>
 
-<p>广告：看广告代替直通卡。</p>
+<p>原因分析：Kong 的 Controller 需要将 Pods 起停信息同步到 Kong 中去，两边信息可能存在不一致。后端实例已经发生更新，但 Kong 中还保留着老实例对应的 target 信息。此时，如果请求转发到该 target，此时其后端实例有可能正在 Terminating，也有可能已经被清理了，那么该请求就会出现异常。</p>
+
+<p><img src="media/16140686104928/16140719208088.jpg" alt="problem when updating"/></p>
+
+<p>我的思路是通过延长后端实例实际 graceful shutdow 时间，当出现上述情况时，我们还保留着老版本实例，虽然它正处于 Terminating 状态，但仍具备处理请求的能力。但是我不能直接修改程序的 graceful shutdown 的逻辑，我通过 K8s Pod 生命周期中支持的 <code>preStop</code> 功能实现。</p>
+
+<pre><code class="language-text">          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - &#39;-c&#39;
+                  - sleep 10 &amp;&amp; nginx -s quit
+</code></pre>
+
+<h4 id="toc_4">引申</h4>
+
+<p>当我们升级 Kong deployment 时会不会同样的问题，这个其实取决于 Kong 上层的负载均衡能否及时感知到 Kong 实例的起停变化，但理论上都存在同样的问题。</p>
+
+<p>且 Kong deployment 默认也开启了 <code>preStop</code> 功能：</p>
+
+<pre><code class="language-text">    image: kong:2.2
+    imagePullPolicy: IfNotPresent
+    lifecycle:
+      preStop:
+        exec:
+          command:
+          - /bin/sh
+          - -c
+          - kong quit
+</code></pre>
+
+<p>我们适当增加一定的 “续命时间”：10s，即 <code>sleep 10 &amp; kong quit</code>。</p>
+
+<h2 id="toc_5">总结</h2>
+
+<p>将 Kong 网关和 Kubernetes 结合时，特别是升级过程中，请求的分配存在一定的缺陷，如果我们不能直接从 Kong 中入手的话，我们可以结合 K8s 的特性去尝试。</p>
 
 
     
@@ -165,13 +196,13 @@
         <div class="large-6 columns">
         <p class="text-left" style="padding:15px 0px;">
       
-          <a href="16106134534236.html" 
-          title="Previous Post: Kong API Gateway 落地 Kubernetes 实践（一）：部署">&laquo; Kong API Gateway 落地 Kubernetes 实践（一）：部署</a>
-      
         </p>
         </div>
         <div class="large-6 columns">
       <p class="text-right" style="padding:15px 0px;">
+      
+          <a  href="16140568914659.html" 
+          title="Next Post: Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件">Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件 &raquo;</a>
       
       </p>
         </div>
@@ -318,6 +349,8 @@ Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
 
 
 
+
+<script src="asset/prism.js"></script>
 
 
 <style type="text/css">
