@@ -102,6 +102,130 @@
 		<div class="markdown-body home-categories">
 		
 			<div class="article">
+                <a class="clearlink" href="16140568914659.html">
+                
+                  <h1>Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<p>经过上一篇，加上自己尝试的话，基本上会对 Kong 插件的使用方式有个印象了。接下来，我们来说说自定义插件。</p>
+
+<p>当现成的插件满足不了我们的需求，我们就要实现自己的插件，然后借这个机会，把整个自定义插件的开发，发布流程记录下。</p>
+
+<h2 id="toc_0">资料</h2>
+
+<p>首先是基础的 <a href="https://docs.konghq.com/gateway-oss/2.3.x/plugin-development/">Plugin Development Guide</a> 和 <a href="https://docs.konghq.com/gateway-oss/2.3.x/pdk/">Plugin Development Kit</a>，这两篇只是给了我们插件内部实现的文档。接着强烈推荐 <a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/setting-up-custom-plugins/">Setting up custom plugin in Kubernetes environment</a>，这篇特别适合不熟悉 lua 的开发者，其中也给了一个非常好的 demo 。</p>
+
+<h2 id="toc_1">新插件代码</h2>
+
+<p>插件需求：我尝试使用 Kong Proxy Cache（请求缓存插件）后发现产生了一个疑问：缓存的命中率如何？</p>
+
+<p>从监控上，我能看到所有请求的统计情况，但是我看不出有多少请求是命中了缓存的，可能是那些时延比较低的请求，但是不够精确和量化。我就想如果能在监控信息中夹带是否命中的数据，那么在监控展示时，根据这个数据过滤，然后就能得到准确的命中率了。</p>
+
+<p>插件实现思路：观察 Kong grafana 监控，我们注意到请求的监控数据条目是 <code>kong_http_status</code>。直接的想法是，要是在这个 Prometheus 条目上增加名为 “cache” 的 tag 就好了。</p>
+
+<p>然后我们顺着这个想法找到 Prometheus Plugin <a href="https://github.com/Kong/kong-plugin-prometheus">源码</a>，修改源码，详见：<a href="https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus%E3%80%82">https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus。</a></p>
+
+<p>我们主要改动的地方有：</p>
+
+<ul>
+<li>修改 plugin 的命名，一定要跟原来不一样。</li>
+</ul>
+
+<pre><code class="language-text">// in handler.lua file
+
+-- local prometheus = require &quot;kong.plugins.prometheus.exporter&quot;
+local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
+</code></pre>
+
+<ul>
+<li>增加自定义 tag： cache。</li>
+</ul>
+
+<pre><code class="language-text">  metrics.status = prometheus:counter(&quot;http_status&quot;,
+        &quot;HTTP status codes per service/route in Kong&quot;,
+        -- {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;})
+        {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;, &quot;cache&quot;})
+</code></pre>
+
+<pre><code class="language-text">    labels_table[4] = &quot;Unknown&quot;
+    if message.response.headers[&quot;x-cache-status&quot;] then 
+      labels_table[4] = message.response.headers[&quot;x-cache-status&quot;]
+    end
+</code></pre>
+
+<p>我们在这里需要注意的是：<strong>插件的执行顺序</strong>。根据我们的需求，监控插件需要判断出哪些请求命中了缓存，哪些没有命中，所以必须安排在缓存插件之后执行。</p>
+
+<p>简单解释下 HTTP header： x-cache-status。该 header 是经过缓存插件后附加到 response Header 上。其中取值有：Hit（命中），Miss（未命中），Bypass(不考虑缓存)，Refresh(缓存超时)。我们不在乎具体取值是什么，如果发现 header 中有 “x-cache-status” ，就在该请求的监控条目中设置 cache tag。</p>
+
+<h2 id="toc_2">集成新插件</h2>
+
+<p>我们接下来需要将新插件集成到 Kong 网关中。我觉得，在 Kong Ingress Controller（K8s 集群）环境下集成插件比原生 Kong 环境更方便。</p>
+
+<p>先将代码以 configMap 的形式录入到 K8s 集群，</p>
+
+<pre><code class="language-text">kubectl create cm kong-plugin-caoliao-prometheus --from-file=caoliao-prometheus -n kong
+</code></pre>
+
+<p>然后修改 KIC deployment，</p>
+
+<pre><code class="language-text">      - env:
+        - name: KONG_PLUGINS
+          value: bundled,caoliao-prometheus
+        - name: KONG_LUA_PACKAGE_PATH
+          value: /opt/?.lua;;
+
+        volumeMounts:
+        - mountPath: /opt/kong/plugins/caoliao-prometheus
+          name: kong-plugin-caoliao-prometheus
+
+      volumes:
+        - configMap:
+            name: kong-plugin-caoliao-prometheus
+          name: kong-plugin-caoliao-prometheus
+</code></pre>
+
+<p>如上如升级网关即可。</p>
+
+<h2 id="toc_3">监控展示</h2>
+
+<p>设计 3 条 Metrics Query，分别是命中缓存的请求 RPS，总请求 RPS 以及命中率。</p>
+
+<p><img src="media/16140568914659/16140676902731.jpg" alt="Hit ratio"/></p>
+
+<h2 id="toc_4">总结</h2>
+
+<p>我们通过小小修改了 Kong Prometheus Plugin 源码，走完了自定义插件从开发到集成发布的全过程。Kong 的很多插件，我们都是可以找到源码的，如果是和我一样不熟悉 lua 的开发者，我建议优先考虑在源码的基础上改进，而不要自己造轮子。</p>
+
+<p>另外，Kong 还支持 golang 插件，有机会我也想尝试下。</p>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2021/02/23</span>
+                    <span>posted in&nbsp;</span> 
+          				  
+          					    <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
+          				   
+                    
+
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
                 <a class="clearlink" href="16139733008830.html">
                 
                   <h1>Kong API Gateway 落地 Kubernetes 实践（二）：可用插件与监控采集</h1>
@@ -1161,6 +1285,12 @@ spec:
 	      
 		      
 			      <li class="post">
+			        <a href="16140568914659.html">Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
 			        <a href="16139733008830.html">Kong API Gateway 落地 Kubernetes 实践（二）：可用插件与监控采集</a>
 			      </li>
 		     
@@ -1184,10 +1314,6 @@ spec:
 		     
 		  
 		      
-			      <li class="post">
-			        <a href="16106134732911.html">Kong API Gateway 落地 Kubernetes 实践（零）：启程</a>
-			      </li>
-		     
 		  
 		      
 		  
