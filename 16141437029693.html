@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  英雄（零） - 皮皮是条科技
+  Kong API Gateway 落地 Kubernetes 实践（五）：迁移 - 皮皮是条科技
   
   </title>
   
@@ -102,14 +102,14 @@
       <div class="markdown-body article-wrap">
        <div class="article">
           
-          <h1>英雄（零）</h1>
+          <h1>Kong API Gateway 落地 Kubernetes 实践（五）：迁移</h1>
      
         <div class="read-more clearfix">
-          <span class="date">2021/01/14</span>
+          <span class="date">2021/02/24</span>
 
           <span>posted in&nbsp;</span> 
           
-              <span class="posted-in"><a href='flutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html'>flutter 开发游戏汇总</a></span>
+              <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
            
          
           <span class="comments">
@@ -122,39 +122,40 @@
       </div><!-- article -->
 
       <div class="article-content">
-      <h2 id="toc_0">缘由</h2>
+      <p>选择 Kong Gateway 作为网关，选择 Kubernetes 作为容器资源编排平台，很可能是架构调整的方案，到目前为止，我们只是验证了该方案的可行性，还停留在调研部分，接下来是真正关键的部分：迁移。</p>
 
-<p>最近看到有文字类游戏的视频推送，看了下觉得还挺有意思的，正好最近也在学习 flutter ，就想开发一款这类主题的游戏。</p>
+<h2 id="toc_0">迁移的要求</h2>
 
-<h2 id="toc_1">准备</h2>
+<ol>
+<li>程序性可控，具备可操作性。</li>
+<li>平滑稳妥，用户不感知。</li>
+<li>尽可能兼容，对开发，测试人员友好。</li>
+<li>有回退方案。</li>
+</ol>
 
-<h3 id="toc_2">用户群体</h3>
+<h3 id="toc_1">新老架构图</h3>
 
-<p>对口用户分两类：</p>
+<p>老架构是通过阿里云负载均衡，负载到某几台虚拟机的模式。新架构是请求负载的网关实例后，再转发到后端业务实例的模式。</p>
 
-<ul>
-<li>中年人：有时间，对传统汉字有兴趣（因为我之前看到我丈人，丈母娘对成语类的游戏有兴趣）。</li>
-<li>小朋友（小学生）：正在学习汉字，有偏旁，读音，组词等方面的学习。</li>
-</ul>
+<p><img src="media/16141437029693/16141454079008.jpg" alt="old architecture"/></p>
 
-<p>另外像我这种有兴趣，这一类部分年龄。</p>
+<p><img src="media/16141437029693/16141456106478.jpg" alt="new architecture"/></p>
 
-<h3 id="toc_3">游戏模式</h3>
+<h3 id="toc_2">过渡方案架构图</h3>
 
-<p>游戏模式参考王者荣耀，有几类:</p>
+<p>为保证服务平滑迁移，我们希望能把一部分老架构的流量迁移到新架构中，同时也要保证这个流量是可控的，比如说是按 0 -&gt; 100% 之间可控。</p>
 
-<ul>
-<li>娱乐模式：适合不同用户类别，例如小学生识字，准备“汉字节目”竞赛等，触发每日成就。</li>
-<li>排位模式：连线其他用户一起答题。可能初期开发难度大！</li>
-</ul>
+<p><img src="media/16141437029693/16141458541574.jpg" alt="migrating architecture"/></p>
 
-<h3 id="toc_4">盈利</h3>
+<p>上图方案中，我们在老架构的负载均衡后增加了一个特殊的节点，该节点本身不处理请求，但是可以将请求转发到新架构中，并能拿到处理结果的返回。然后我们调整节点的权重，控制流量转移到新架构中去。等到全部流量都导到新架构中去时，我们从源头将域名解析切换到新架构的负载均衡中。上述负载均衡都是阿里云公网 IP 型的。</p>
 
-<p>直通卡：可以在娱乐模式中使用，跳过当前题目。</p>
+<p>简单评价下，该方案导流到新架构的流量大小是可控的（从 0 到 1）。迁移方案过程中，老架构后端 ECS 一直保留，只要将特殊节点的权重置 0，即可回退。扩展性好，可通过控制特殊节点数量，水平扩缩。</p>
 
-<p>待定：类王者荣耀虚拟游戏周边，皮肤，语音包等。</p>
+<p><strong>注意点</strong>：随着流量渐渐转移到新架构中，上图中那个特殊节点转发的流量渐渐变成了全量，对此我们需要有相应的监控，因为该节点才是整个方案中的瓶颈。另外该特殊节点是可以水平扩展了，一个不够的话可以部署 2 个，甚至 3 个，这个完全取决于待迁移服务的流量大小。</p>
 
-<p>广告：看广告代替直通卡。</p>
+<h2 id="toc_3">总结</h2>
+
+<p>介绍了一个简单的架构迁移方案，但实际上也能应对大部分的场景，兼顾高效和可行性。迁移方案的设计需要熟悉新老两套架构，还要兼顾业务场景，某种角度说，迁移方案是没有优劣的，合适的就是最好的。</p>
 
 
     
@@ -165,13 +166,13 @@
         <div class="large-6 columns">
         <p class="text-left" style="padding:15px 0px;">
       
-          <a href="16106134534236.html" 
-          title="Previous Post: Kong API Gateway 落地 Kubernetes 实践（一）：部署">&laquo; Kong API Gateway 落地 Kubernetes 实践（一）：部署</a>
-      
         </p>
         </div>
         <div class="large-6 columns">
       <p class="text-right" style="padding:15px 0px;">
+      
+          <a  href="16140686104928.html" 
+          title="Next Post: Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化">Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化 &raquo;</a>
       
       </p>
         </div>

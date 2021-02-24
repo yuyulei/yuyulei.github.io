@@ -102,6 +102,74 @@
 		<div class="markdown-body home-categories">
 		
 			<div class="article">
+                <a class="clearlink" href="16141437029693.html">
+                
+                  <h1>Kong API Gateway 落地 Kubernetes 实践（五）：迁移</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<p>选择 Kong Gateway 作为网关，选择 Kubernetes 作为容器资源编排平台，很可能是架构调整的方案，到目前为止，我们只是验证了该方案的可行性，还停留在调研部分，接下来是真正关键的部分：迁移。</p>
+
+<h2 id="toc_0">迁移的要求</h2>
+
+<ol>
+<li>程序性可控，具备可操作性。</li>
+<li>平滑稳妥，用户不感知。</li>
+<li>尽可能兼容，对开发，测试人员友好。</li>
+<li>有回退方案。</li>
+</ol>
+
+<h3 id="toc_1">新老架构图</h3>
+
+<p>老架构是通过阿里云负载均衡，负载到某几台虚拟机的模式。新架构是请求负载的网关实例后，再转发到后端业务实例的模式。</p>
+
+<p><img src="media/16141437029693/16141454079008.jpg" alt="old architecture"/></p>
+
+<p><img src="media/16141437029693/16141456106478.jpg" alt="new architecture"/></p>
+
+<h3 id="toc_2">过渡方案架构图</h3>
+
+<p>为保证服务平滑迁移，我们希望能把一部分老架构的流量迁移到新架构中，同时也要保证这个流量是可控的，比如说是按 0 -&gt; 100% 之间可控。</p>
+
+<p><img src="media/16141437029693/16141458541574.jpg" alt="migrating architecture"/></p>
+
+<p>上图方案中，我们在老架构的负载均衡后增加了一个特殊的节点，该节点本身不处理请求，但是可以将请求转发到新架构中，并能拿到处理结果的返回。然后我们调整节点的权重，控制流量转移到新架构中去。等到全部流量都导到新架构中去时，我们从源头将域名解析切换到新架构的负载均衡中。上述负载均衡都是阿里云公网 IP 型的。</p>
+
+<p>简单评价下，该方案导流到新架构的流量大小是可控的（从 0 到 1）。迁移方案过程中，老架构后端 ECS 一直保留，只要将特殊节点的权重置 0，即可回退。扩展性好，可通过控制特殊节点数量，水平扩缩。</p>
+
+<p><strong>注意点</strong>：随着流量渐渐转移到新架构中，上图中那个特殊节点转发的流量渐渐变成了全量，对此我们需要有相应的监控，因为该节点才是整个方案中的瓶颈。另外该特殊节点是可以水平扩展了，一个不够的话可以部署 2 个，甚至 3 个，这个完全取决于待迁移服务的流量大小。</p>
+
+<h2 id="toc_3">总结</h2>
+
+<p>介绍了一个简单的架构迁移方案，但实际上也能应对大部分的场景，兼顾高效和可行性。迁移方案的设计需要熟悉新老两套架构，还要兼顾业务场景，某种角度说，迁移方案是没有优劣的，合适的就是最好的。</p>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2021/02/24</span>
+                    <span>posted in&nbsp;</span> 
+          				  
+          					    <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
+          				   
+                    
+
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
                 <a class="clearlink" href="16140686104928.html">
                 
                   <h1>Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化</h1>
@@ -109,7 +177,7 @@
                       
                       <div class="a-content-text">
                         
-                        	<p>网关顺利搭起来了，接下来就要验收的时候了。我针对 Kong Gateway + Kubernetes 的形式进行了一些基本操作的验收，包括创建，重启，升级等。</p>
+                        	<p>网关顺利搭起来了，接下来就要验收的时候了。我针对 Kong Gateway + Kubernetes 的形式进行了一些基本操作的验收，主要包括创建，重启，升级等。</p>
 
 <h2 id="toc_0">后端服务背景</h2>
 
@@ -1383,6 +1451,12 @@ spec:
 	      
 		      
 			      <li class="post">
+			        <a href="16141437029693.html">Kong API Gateway 落地 Kubernetes 实践（五）：迁移</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
 			        <a href="16140686104928.html">Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化</a>
 			      </li>
 		     
@@ -1406,10 +1480,6 @@ spec:
 		     
 		  
 		      
-			      <li class="post">
-			        <a href="16136273338891.html">小公司最怕什么--与行业水平脱轨</a>
-			      </li>
-		     
 		  
 		      
 		  
