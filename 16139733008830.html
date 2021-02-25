@@ -38,7 +38,7 @@
       <div style="position: relative;width:100%;"><div style="position: absolute; width:100%;">
         <ul id="main-menu" class="left">
         
-        <li id=""><a target="self" href="index.html">Home</a></li>
+        <li id=""><a target="_self" href="index.html">Home</a></li>
         
         <li id=""><a target="_self" href="archives.html">Archives</a></li>
         
@@ -67,7 +67,7 @@
 <aside class="left-off-canvas-menu">
       <ul class="off-canvas-list">
         
-        <li><a target="self" href="index.html">Home</a></li>
+        <li><a target="_self" href="index.html">Home</a></li>
         
         <li><a target="_self" href="archives.html">Archives</a></li>
         
@@ -129,6 +129,8 @@
 <p>关于监控采集，默认 Kong 暴露的 metrics 接口是 <code>:8100/metrics</code>，包括一些基本数据监控，更为细粒度的监控数据（比如 Routes，Services, HTTTP code 等）就需要监控插件：Prometheus Plugin。</p>
 
 <p>另外，Kong 还有官方 Grafana dashboard 模板，只要适配好监控源，完全可以实现一键搭建监控图，详见：<a href="https://grafana.com/grafana/dashboards/7424%E3%80%82">https://grafana.com/grafana/dashboards/7424。</a></p>
+
+<!--more-->
 
 <h2 id="toc_0">准备</h2>
 

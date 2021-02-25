@@ -38,7 +38,7 @@
       <div style="position: relative;width:100%;"><div style="position: absolute; width:100%;">
         <ul id="main-menu" class="left">
         
-        <li id=""><a target="self" href="index.html">Home</a></li>
+        <li id=""><a target="_self" href="index.html">Home</a></li>
         
         <li id=""><a target="_self" href="archives.html">Archives</a></li>
         
@@ -67,7 +67,7 @@
 <aside class="left-off-canvas-menu">
       <ul class="off-canvas-list">
         
-        <li><a target="self" href="index.html">Home</a></li>
+        <li><a target="_self" href="index.html">Home</a></li>
         
         <li><a target="_self" href="archives.html">Archives</a></li>
         
@@ -112,6 +112,8 @@
                       <div class="a-content-text">
                         
                         	<p>就像对 nginx 配置参数优化的道理一样，我们也需要对阿里云默认 nginx-ingress-controller 和 Kong-ingress-controller 进行参数优化。</p>
+
+<!--more-->
 
 <h2 id="toc_0">增加对 response header 大小限制</h2>
 
@@ -182,6 +184,8 @@
                       <div class="a-content-text">
                         
                         	<p>在回答这个问题前，我们首先要了解 TCP 和 UDP。然后，我们关注于：1. TCP 与 UDP 的差异 2. 如果以 UDP 的条件或基础去实现这些差异。</p>
+
+<!--more-->
 
 <h2 id="toc_0">差异性</h2>
 
@@ -268,6 +272,8 @@
                       <div class="a-content-text">
                         
                         	<p>框架已经搭好，接下来就是对号入座了，在过程中，我们遇到了一些细碎的问题，如果不注意的话可能会采坑。</p>
+
+<!--more-->
 
 <h2 id="toc_0">网关传递源 IP</h2>
 
@@ -386,6 +392,8 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                       <div class="a-content-text">
                         
                         	<p>选择 Kong Gateway 作为网关，选择 Kubernetes 作为容器资源编排平台，很可能是架构调整的方案，到目前为止，我们只是验证了该方案的可行性，还停留在调研部分，接下来是真正关键的部分：迁移。</p>
+
+<!--more-->
 
 <h2 id="toc_0">迁移的要求</h2>
 
@@ -558,6 +566,8 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
 
 <p>当现成的插件满足不了我们的需求，我们就要实现自己的插件，然后借这个机会，把整个自定义插件的开发，发布流程记录下。</p>
 
+<!--more-->
+
 <h2 id="toc_0">资料</h2>
 
 <p>首先是基础的 <a href="https://docs.konghq.com/gateway-oss/2.3.x/plugin-development/">Plugin Development Guide</a> 和 <a href="https://docs.konghq.com/gateway-oss/2.3.x/pdk/">Plugin Development Kit</a>，这两篇只是给了我们插件内部实现的文档。接着强烈推荐 <a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/setting-up-custom-plugins/">Setting up custom plugin in Kubernetes environment</a>，这篇特别适合不熟悉 lua 的开发者，其中也给了一个非常好的 demo 。</p>
@@ -684,6 +694,8 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
 
 <p>另外，Kong 还有官方 Grafana dashboard 模板，只要适配好监控源，完全可以实现一键搭建监控图，详见：<a href="https://grafana.com/grafana/dashboards/7424%E3%80%82">https://grafana.com/grafana/dashboards/7424。</a></p>
 
+<!--more-->
+
 <h2 id="toc_0">准备</h2>
 
 <p>在谈监控前，我们首先要完善 Prometheus（这个 Prometheus 不是指插件，而是监控采集工具），我这里是直接使用阿里云的监控采集，省去了 Prometheus 的安装以及数据存储问题。</p>
@@ -792,6 +804,8 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                       <div class="a-content-text">
                         
                         	<p>我在一家小公司呆了半年多，有了些对于小型 IT 公司生存环境，行业竞争等方面的感悟。</p>
+
+<!--more-->
 
 <h2 id="toc_0">硬实力脱轨</h2>
 
@@ -975,7 +989,11 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                       
                       <div class="a-content-text">
                         
-                        	<h2 id="toc_0">背景</h2>
+                        	<p>自己在上海回到宁波后，对宁波这个 IT 荒漠有了更深的体会，也结合自己在小公司的经历，谈谈 IT 架构的发展。</p>
+
+<!--more-->
+
+<h2 id="toc_0">背景</h2>
 
 <p>尽管现在各种微服务架构，云原生体系横行，实践的经验和分享也可以经常从各类公众号上看到，但是这些对小型 IT 公司的帮助还是十分有限。为什么呢，我从 “往哪迁”，“怎么迁” 两方面分析：</p>
 
@@ -1319,7 +1337,11 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                       
                       <div class="a-content-text">
                         
-                        	<h2 id="toc_0">背景</h2>
+                        	<p>开启 Kong 网关在 Kubernetes 集群的实践。</p>
+
+<!--more-->
+
+<h2 id="toc_0">背景</h2>
 
 <p>其实在开始将 Kong 之前，我们不能不先回答两个问题是：1. 为什么要有 API Gateway ？2. 为什么选 Kong 作为网关 ？</p>
 
@@ -1392,6 +1414,8 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
 </ol>
 
 <p>相关代码见：<a href="https://github.com/yuyulei/blog-codes">https://github.com/yuyulei/blog-codes</a></p>
+
+<!--more-->
 
 <h2 id="toc_0">部署</h2>
 
@@ -1598,7 +1622,10 @@ spec:
                       
                       <div class="a-content-text">
                         
-                        	<h2 id="toc_0">缘由</h2>
+                        	<p>出发：想做一块简单的游戏！<br/>
+<!--more--></p>
+
+<h2 id="toc_0">缘由</h2>
 
 <p>最近看到有文字类游戏的视频推送，看了下觉得还挺有意思的，正好最近也在学习 flutter ，就想开发一款这类主题的游戏。</p>
 
