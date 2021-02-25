@@ -77,6 +77,8 @@
         
             <li><a href="Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html">Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></li>
         
+            <li><a href="%E6%9C%89%E6%84%8F%E6%80%9D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE.html">有意思的面试题目</a></li>
+        
             <li><a href="flutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html">flutter 开发游戏汇总</a></li>
         
             <li><a href="%E6%9D%82%E8%B0%88.html">杂谈</a></li>
@@ -101,6 +103,92 @@
 	<div class="large-8 medium-8 columns">
 		<div class="markdown-body home-categories">
 		
+			<div class="article">
+                <a class="clearlink" href="16142224354062.html">
+                
+                  <h1>如何让 UDP 实现 TCP</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<p>在回答这个问题前，我们首先要了解 TCP 和 UDP。然后，我们关注于：1. TCP 与 UDP 的差异 2. 如果以 UDP 的条件或基础去实现这些差异。</p>
+
+<h2 id="toc_0">差异性</h2>
+
+<p>我直接从网上找了张参考图。</p>
+
+<p><img src="media/16142224354062/16142294614726.jpg" alt="differents"/></p>
+
+<p>简单归纳下来，我们可以从以下几方面区分差异性：</p>
+
+<ol>
+<li>面向连接。TCP 在数据传输前需要建立一个可靠的连接，以数据字节流的形式传输数据。UDP 不需要连接，支持多播，广播，以数据报文的形式在网络中传输。</li>
+<li>有序接收数据和重传。TCP 能从机制上保证数据到达的顺序，出现丢包时支持重传。UDP 不支持。</li>
+<li>流量控制和拥塞控制。TCP 在连接的基础上进行点对点通信，发送方可以根据接收方的反馈信息，调整数据流的传输状态。UDP 只管发送。</li>
+</ol>
+
+<h2 id="toc_1">UDP 实现 TCP</h2>
+
+<h3 id="toc_2">面向连接</h3>
+
+<p>TCP 的连接建立是从 “三次握手” 开始，理论上我们也可以模拟这种方式，使用 UDP 发三个包来模拟连接建立。同理，断开连接的 “四次握手”，也可以通过 UDP 发包模拟。</p>
+
+<h3 id="toc_3">确认与丢包问题</h3>
+
+<p>如果接收端收到了数据包，可以做一个确认，发送一个 ACK 给发送端(这个 ACK 参照 TCP)。<br/>
+如果有的数据包提前到达，接收端可以缓存着。<br/>
+如果有的数据包丢失，接收方可以设置超时，要求发送端重新发送。超时时间过短（相较RTT），导致过多的重传，超时时间过长，影响传输速度。</p>
+
+<h3 id="toc_4">顺序问题</h3>
+
+<p>所有数据包都有自己的唯一顺序 ID，这部分可能要修改协议头。接收端通过返回 ACK 告诉发送端，“我准备接收某 ID 的数据包”。</p>
+
+<h3 id="toc_5">流量控制</h3>
+
+<p>参照滑动窗口协议，发送端通过 ACK 中夹带的接收端窗口大小，控制自身的发送速率。</p>
+
+<p>会发生死锁吗？</p>
+
+<p>当发送者收到了一个窗口为0的应答，发送者便停止发送，等待接收者的下一个应答。但是如果这个窗口不为0的应答在传输过程丢失，发送者一直等待下去，而接收者以为发送者已经收到该应答，等待接收新数据，这样双方就相互等待，从而产生死锁。</p>
+
+<p>每当发送者收到一个零窗口的应答后就启动该计时器。时间一到便主动发送报文询问接收者的窗口大小。若接收者仍然返回零窗口，则重置该计时器继续等待；若窗口不为0，则表示应答报文丢失了，此时重置发送窗口后开始发送，这样就避免了死锁的产生。</p>
+
+<h3 id="toc_6">拥塞控制</h3>
+
+<p>拥塞控制应对网络异常的场景，包括网络中出现的丢包和超时。</p>
+
+<p>慢启动算法：一开始使用小流量试探网络质量，指数型增加拥塞窗口，避免拥塞。当窗口大小等于阈值时，窗口改为一个一个增加。<br/>
+拥塞避免算法：当出现超时（拥塞）时，我们及时将窗口大小调整为当前的一半，然后窗口大小开始慢慢增加，如果再次出现超时（拥塞），那么重复之前的操作。</p>
+
+<p>额外功能：<br/>
+快重传算法：接收端收到失序的数据包时，立即发出重复确认（不要等到自己的发送数据时稍待确认）。而发送端一脸多次收到重复确认时，就立即重传接收端未收到的数据包，而不必等待重传计时器到期。<br/>
+快恢复算法：当发送端收到多个重复确认时，此时网络可能没有出现拥塞（因为拥塞的话，可能连重复确认都接收不到），但是为了预防网络拥塞，开始采取拥塞避免算法。</p>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2021/02/25</span>
+                    <span>posted in&nbsp;</span> 
+          				  
+          					    <span class="posted-in"><a href='%E6%9C%89%E6%84%8F%E6%80%9D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE.html'>有意思的面试题目</a></span>
+          				   
+                    
+
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
 			<div class="article">
                 <a class="clearlink" href="16141518827992.html">
                 
@@ -1553,6 +1641,8 @@ spec:
         
             <a href="Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html"><strong>Kong API Gateway 网关在 Kubernetes 集群的落地实战</strong></a>
         
+            <a href="%E6%9C%89%E6%84%8F%E6%80%9D%E7%9A%84%E9%9D%A2%E8%AF%95%E9%A2%98%E7%9B%AE.html"><strong>有意思的面试题目</strong></a>
+        
             <a href="flutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html"><strong>flutter 开发游戏汇总</strong></a>
         
             <a href="%E6%9D%82%E8%B0%88.html"><strong>杂谈</strong></a>
@@ -1570,6 +1660,12 @@ spec:
                 <div class="side-content">
                 <ul class="posts-list">
 	      
+		      
+			      <li class="post">
+			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			      </li>
+		     
+		  
 		      
 			      <li class="post">
 			        <a href="16141518827992.html">Kong API Gateway 落地 Kubernetes 实践（六）：保留客户端 IP</a>
@@ -1595,10 +1691,6 @@ spec:
 		     
 		  
 		      
-			      <li class="post">
-			        <a href="16139733008830.html">Kong API Gateway 落地 Kubernetes 实践（二）：可用插件与监控采集</a>
-			      </li>
-		     
 		  
 		      
 		  
