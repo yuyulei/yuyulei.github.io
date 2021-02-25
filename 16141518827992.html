@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  flutter 开发游戏汇总 - 皮皮是条科技
+  Kong API Gateway 落地 Kubernetes 实践（六）：扩展功能 - 皮皮是条科技
   
   </title>
   
@@ -93,98 +93,154 @@
        
 
  <script type="text/javascript">
-	$(function(){
-		$('#menu_item_index').addClass('is_active');
-	});
+  $(function(){
+    $('#menu_item_index').addClass('is_active');
+  });
 </script>
 <div class="row">
-	<div class="large-8 medium-8 columns">
-		<div class="markdown-body home-categories">
-		
-			<div class="article">
-                <a class="clearlink" href="16106120160541.html">
-                
-                  <h1>英雄（零）</h1>
-                  <div class="a-content">
-                      
-                      <div class="a-content-text">
-                        
-                        	<h2 id="toc_0">缘由</h2>
+  <div class="large-8 medium-8 columns">
+      <div class="markdown-body article-wrap">
+       <div class="article">
+          
+          <h1>Kong API Gateway 落地 Kubernetes 实践（六）：扩展功能</h1>
+     
+        <div class="read-more clearfix">
+          <span class="date">2021/02/24</span>
 
-<p>最近看到有文字类游戏的视频推送，看了下觉得还挺有意思的，正好最近也在学习 flutter ，就想开发一款这类主题的游戏。</p>
+          <span>posted in&nbsp;</span> 
+          
+              <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
+           
+         
+          <span class="comments">
+            
 
-<h2 id="toc_1">准备</h2>
+            
+          </span>
 
-<h3 id="toc_2">用户群体</h3>
+        </div>
+      </div><!-- article -->
 
-<p>对口用户分两类：</p>
+      <div class="article-content">
+      <p>框架已经搭好，接下来就是对号入座了，在过程中，我们遇到了一些细碎的问题，如果不注意的话可能会采坑。</p>
 
-<ul>
-<li>中年人：有时间，对传统汉字有兴趣（因为我之前看到我丈人，丈母娘对成语类的游戏有兴趣）。</li>
-<li>小朋友（小学生）：正在学习汉字，有偏旁，读音，组词等方面的学习。</li>
-</ul>
+<h2 id="toc_0">网关传递源 IP</h2>
 
-<p>另外像我这种有兴趣，这一类部分年龄。</p>
+<p>这个问题其实分两方面，一方面当然是 Kong 传递源 IP，另一方面是 Kubernetes 转发流量到 Pods 时保留源 IP。</p>
 
-<h3 id="toc_3">游戏模式</h3>
+<p>这里我们假设链路是，</p>
 
-<p>游戏模式参考王者荣耀，有几类:</p>
+<pre><code class="language-text">请求 --&gt; 负载均衡 --&gt; 集群节点 --&gt; Kong 网关实例 --&gt; Pod
+</code></pre>
 
-<ul>
-<li>娱乐模式：适合不同用户类别，例如小学生识字，准备“汉字节目”竞赛等，触发每日成就。</li>
-<li>排位模式：连线其他用户一起答题。可能初期开发难度大！</li>
-</ul>
+<p>之前我们说过，我们的 Kong 是接在阿里云默认 nginx-ingress-controller 之后的，但这里我们为了简化，直接把涉及这方面的去掉了。</p>
 
-<h3 id="toc_4">盈利</h3>
+<h3 id="toc_1">Kubernetes 保留客户端源 IP 的策略</h3>
 
-<p>直通卡：可以在娱乐模式中使用，跳过当前题目。</p>
+<p>参考文档: </p>
 
-<p>待定：类王者荣耀虚拟游戏周边，皮肤，语音包等。</p>
+<p>K8s 官方文档：<a href="https://kubernetes.io/zh/docs/tasks/access-application-cluster/create-external-load-balancer/#%E4%BF%9D%E7%95%99%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%BA%90-ip">保留客户端源 IP</a>。</p>
 
-<p>广告：看广告代替直通卡。</p>
+<pre><code class="language-text">service.spec.externalTrafficPolicy - 表示此服务是否希望将外部流量路由到节点本地或集群范围的端点。 有两个可用选项：Cluster（默认）和 Local。 Cluster 隐藏了客户端源 IP，可能导致第二跳到另一个节点，但具有良好的整体负载分布。 Local 保留客户端源 IP 并避免 LoadBalancer 和 NodePort 类型服务的第二跳， 但存在潜在的不均衡流量传播风险。
+</code></pre>
 
-                        
-                      </div>
-                  </div>
-                </a>
-                <div class="read-more clearfix">
-                  <div class="more-left left">
-                  
-                    <span class="date">2021/01/14</span>
-                    <span>posted in&nbsp;</span> 
-          				  
-          					    <span class="posted-in"><a href='flutter%20%E5%BC%80%E5%8F%91%E6%B8%B8%E6%88%8F%E6%B1%87%E6%80%BB.html'>flutter 开发游戏汇总</a></span>
-          				   
-                    
+<p>阿里云文档: <a href="https://developer.aliyun.com/article/720357">容器服务中多个SLB负载均衡并透传源 IP</a>。</p>
 
-                  </div>
-                  <div class="more-right right">
-                  <span class="comments">
-                      
+<p>总结下来，如果要保留源 IP，那么我们就要选择 <code>Local</code>。但是有一点要注意的是，外部请求经过公网 IP 的负载均衡到达集群节点。</p>
 
-                       
-                  </span>
-                  </div>
-                </div>
-              </div><!-- article -->
-        
-              
+<p>注意：负载均衡将请求负载到节点的方式，是由云厂商决定的。以阿里云为例，负载均衡支持后端是一个虚拟服务器组，该组包含了 K8s 集群中所有的普通节点，如果集群出现节点的扩缩，该组能及时同步。</p>
+
+<p><img src="media/16141518827992/16142190110823.jpg" alt="externalTrafficPolicy is Local"/></p>
+
+<p>如上图所示，负载均衡会均分流量到各个普通节点，单个节点上的 Kong Pod 会均分节点流量，从整体上看，会出现 Kong Pod 接收流量不均的问题，更为严重的是，上图最右边的节点上没有  Kong Pod 实例，那么这节点上的流量都会异常。这个就是前面所说的负载不均问题。</p>
+
+<h3 id="toc_2">Kubernetes 保留客户端源 IP 的实际解决方案</h3>
+
+<p>沿着之前的分析，我们暂时不能要求阿里云负载均衡只负载到那些部署了 Kong Pod 实例的节点上，那么我们只能要求每个普通节点上都有 Kong Pod 实例，且为了避免负载不均，每个节点上只能由一个 Kong Pod 实例。</p>
+
+<p>总结：每个普通节点上要求一个 Kong Pod 实例。</p>
+
+<p>方案一：以 DaemonSet 方式部署 Kong 网关。<br/>
+方案二：以 Deployment 方式部署 Kong 网关，Pod 与 Pod 之间反亲和，数量与节点一致。</p>
+
+<p>这里我们选择了方案二，主要是考虑兼容原来的部署，如果没有历史包袱的话，选择方案一也是可以的。</p>
+
+<p>反亲和性配置</p>
+
+<pre><code class="language-text">      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values: ingress-kong
+                  - 
+              topologyKey: kubernetes.io/hostname
+</code></pre>
+
+<h3 id="toc_3">Kong 保留源 IP</h3>
+
+<p>此时我们保证带有源 IP 信息的请求到达了 Kong Pod 实例，接下来就要看 Kong Pod 将请求转发到后端实例时，能否夹带源 IP 信息。</p>
+
+<p>Kong 官方文档：<a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/preserve-client-ip/">Preserving Client IP Address</a>。<br/>
+Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients-request-ip/384/19">Kong Nation How to Forward Client’s request IP</a>。</p>
+
+<p>例如我修改的配置为：</p>
+
+<pre><code class="language-text">        - name: KONG_TRUSTED_IPS
+          value: 0.0.0.0/0,::/0
+        - name: KONG_REAL_IP_HEADER
+          value: X-Forwarded-For
+</code></pre>
+
+<h3 id="toc_4">验收结果</h3>
+
+<p>我们在 K8s 集群部署 echo 服务，并配置路由将其暴露出来。</p>
+
+<p><img src="media/16141518827992/16142215491432.jpg" alt="echo for client ip"/></p>
+
+<p>我们看到经过网关的时候，会在 <code>x-forwarded-for</code> header 上记录转发网关的地址，然后从 <code>x-real-ip</code> header 上可以找到客户端 IP。</p>
+
+<h2 id="toc_5">总结</h2>
+
+<p>请求在 网关 + K8s 架构中，可以会有多次中转，因此在实现 “保留客户端 IP 这个功能” 时，要确认每次中转时都不要丢失客户端 IP 信息。如果能对整套架构链路有清晰的认识，那么实现该功能就会水到渠成。</p>
 
 
-			<div class="row">
-			  <div class="large-6 columns">
-			  <p class="text-left" style="padding-top:25px;">
-			   
-			  </p>
-			  </div>
-			  <div class="large-6 columns">
-			<p class="text-right" style="padding-top:25px;">
-			
-			</p>
-			  </div>
-			</div>
-		</div>
-	</div><!-- large 8 -->
+    
+
+      </div>
+
+      <div class="row">
+        <div class="large-6 columns">
+        <p class="text-left" style="padding:15px 0px;">
+      
+        </p>
+        </div>
+        <div class="large-6 columns">
+      <p class="text-right" style="padding:15px 0px;">
+      
+          <a  href="16141437029693.html" 
+          title="Next Post: Kong API Gateway 落地 Kubernetes 实践（五）：迁移">Kong API Gateway 落地 Kubernetes 实践（五）：迁移 &raquo;</a>
+      
+      </p>
+        </div>
+      </div>
+      <div class="comments-wrap">
+        <div class="share-comments">
+          
+
+          
+
+          
+        </div>
+      </div>
+    </div><!-- article-wrap -->
+  </div><!-- large 8 -->
+
+
+
 
  <div class="large-4 medium-4 columns">
   <div class="hide-for-small">
@@ -317,6 +373,8 @@ Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
 
 
 
+
+<script src="asset/prism.js"></script>
 
 
 <style type="text/css">
