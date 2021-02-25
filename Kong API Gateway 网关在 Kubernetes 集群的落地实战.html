@@ -113,42 +113,6 @@
                         
                         	<p>就像对 nginx 配置参数优化的道理一样，我们也需要对阿里云默认 nginx-ingress-controller 和 Kong-ingress-controller 进行参数优化。</p>
 
-<!--more-->
-
-<h2 id="toc_0">增加对 response header 大小限制</h2>
-
-<p>Kong 增加环境变量的方式设置配置</p>
-
-<pre><code class="language-text">    - name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE
-      value: 128k
-    - name: KONG_NGINX_PROXY_PROXY_BUFFERS
-      value: 8 256k
-</code></pre>
-
-<p>阿里云 nginx-ingress-controller 调整配置</p>
-
-<pre><code class="language-text">proxy-buffer-size: &quot;128k&quot;
-</code></pre>
-
-<p>注意：nginx-ingress-controller 的配置来自于对应的 configMap。</p>
-
-<h2 id="toc_1">增加对 request body 大小限制</h2>
-
-<p>Kong error 日志中显示</p>
-
-<pre><code class="language-text">a client request body is buffered to a temporary file /usr/local/kong/client_body_temp/0000000006
-</code></pre>
-
-<p>Kong 增加参数配置</p>
-
-<pre><code class="language-text">- name: KONG_CLIENT_BODY_BUFFER_SIZE
-  value: 1024k
-</code></pre>
-
-<p>nginx 增加参数配置</p>
-
-<pre><code class="language-text">client-body-buffer-size: &quot;1024k&quot;
-</code></pre>
 
                         
                       </div>
@@ -156,7 +120,7 @@
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16142407630312.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/25</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -185,90 +149,6 @@
                         
                         	<p>框架已经搭好，接下来就是对号入座了，在过程中，我们遇到了一些细碎的问题，如果不注意的话可能会采坑。</p>
 
-<!--more-->
-
-<h2 id="toc_0">网关传递源 IP</h2>
-
-<p>这个问题其实分两方面，一方面当然是 Kong 传递源 IP，另一方面是 Kubernetes 转发流量到 Pods 时保留源 IP。</p>
-
-<p>这里我们假设链路是，</p>
-
-<pre><code class="language-text">请求 --&gt; 负载均衡 --&gt; 集群节点 --&gt; Kong 网关实例 --&gt; Pod
-</code></pre>
-
-<p>之前我们说过，我们的 Kong 是接在阿里云默认 nginx-ingress-controller 之后的，但这里我们为了简化，直接把涉及这方面的去掉了。</p>
-
-<h3 id="toc_1">Kubernetes 保留客户端源 IP 的策略</h3>
-
-<p>参考文档: </p>
-
-<p>K8s 官方文档：<a href="https://kubernetes.io/zh/docs/tasks/access-application-cluster/create-external-load-balancer/#%E4%BF%9D%E7%95%99%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%BA%90-ip">保留客户端源 IP</a>。</p>
-
-<pre><code class="language-text">service.spec.externalTrafficPolicy - 表示此服务是否希望将外部流量路由到节点本地或集群范围的端点。 有两个可用选项：Cluster（默认）和 Local。 Cluster 隐藏了客户端源 IP，可能导致第二跳到另一个节点，但具有良好的整体负载分布。 Local 保留客户端源 IP 并避免 LoadBalancer 和 NodePort 类型服务的第二跳， 但存在潜在的不均衡流量传播风险。
-</code></pre>
-
-<p>阿里云文档: <a href="https://developer.aliyun.com/article/720357">容器服务中多个SLB负载均衡并透传源 IP</a>。</p>
-
-<p>总结下来，如果要保留源 IP，那么我们就要选择 <code>Local</code>。但是有一点要注意的是，外部请求经过公网 IP 的负载均衡到达集群节点。</p>
-
-<p>注意：负载均衡将请求负载到节点的方式，是由云厂商决定的。以阿里云为例，负载均衡支持后端是一个虚拟服务器组，该组包含了 K8s 集群中所有的普通节点，如果集群出现节点的扩缩，该组能及时同步。</p>
-
-<p><img src="media/16141518827992/16142190110823.jpg" alt="externalTrafficPolicy is Local"/></p>
-
-<p>如上图所示，负载均衡会均分流量到各个普通节点，单个节点上的 Kong Pod 会均分节点流量，从整体上看，会出现 Kong Pod 接收流量不均的问题，更为严重的是，上图最右边的节点上没有  Kong Pod 实例，那么这节点上的流量都会异常。这个就是前面所说的负载不均问题。</p>
-
-<h3 id="toc_2">Kubernetes 保留客户端源 IP 的实际解决方案</h3>
-
-<p>沿着之前的分析，我们暂时不能要求阿里云负载均衡只负载到那些部署了 Kong Pod 实例的节点上，那么我们只能要求每个普通节点上都有 Kong Pod 实例，且为了避免负载不均，每个节点上只能由一个 Kong Pod 实例。</p>
-
-<p>总结：每个普通节点上要求一个 Kong Pod 实例。</p>
-
-<p>方案一：以 DaemonSet 方式部署 Kong 网关。<br/>
-方案二：以 Deployment 方式部署 Kong 网关，Pod 与 Pod 之间反亲和，数量与节点一致。</p>
-
-<p>这里我们选择了方案二，主要是考虑兼容原来的部署，如果没有历史包袱的话，选择方案一也是可以的。</p>
-
-<p>反亲和性配置</p>
-
-<pre><code class="language-text">      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values: ingress-kong
-                  - 
-              topologyKey: kubernetes.io/hostname
-</code></pre>
-
-<h3 id="toc_3">Kong 保留源 IP</h3>
-
-<p>此时我们保证带有源 IP 信息的请求到达了 Kong Pod 实例，接下来就要看 Kong Pod 将请求转发到后端实例时，能否夹带源 IP 信息。</p>
-
-<p>Kong 官方文档：<a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/preserve-client-ip/">Preserving Client IP Address</a>。<br/>
-Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients-request-ip/384/19">Kong Nation How to Forward Client’s request IP</a>。</p>
-
-<p>例如我修改的配置为：</p>
-
-<pre><code class="language-text">        - name: KONG_TRUSTED_IPS
-          value: 0.0.0.0/0,::/0
-        - name: KONG_REAL_IP_HEADER
-          value: X-Forwarded-For
-</code></pre>
-
-<h3 id="toc_4">验收结果</h3>
-
-<p>我们在 K8s 集群部署 echo 服务，并配置路由将其暴露出来。</p>
-
-<p><img src="media/16141518827992/16142215491432.jpg" alt="echo for client ip"/></p>
-
-<p>我们看到经过网关的时候，会在 <code>x-forwarded-for</code> header 上记录转发网关的地址，然后从 <code>x-real-ip</code> header 上可以找到客户端 IP。</p>
-
-<h2 id="toc_5">总结</h2>
-
-<p>请求在 网关 + K8s 架构中，可以会有多次中转，因此在实现 “保留客户端 IP 这个功能” 时，要确认每次中转时都不要丢失客户端 IP 信息。如果能对整套架构链路有清晰的认识，那么实现该功能就会水到渠成。</p>
 
                         
                       </div>
@@ -276,7 +156,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16141518827992.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/24</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -305,43 +185,6 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                         
                         	<p>选择 Kong Gateway 作为网关，选择 Kubernetes 作为容器资源编排平台，很可能是架构调整的方案，到目前为止，我们只是验证了该方案的可行性，还停留在调研部分，接下来是真正关键的部分：迁移。</p>
 
-<!--more-->
-
-<h2 id="toc_0">迁移的要求</h2>
-
-<ol>
-<li>程序性可控，具备可操作性。</li>
-<li>平滑稳妥，用户不感知。</li>
-<li>尽可能兼容，对开发，测试人员友好。</li>
-<li>有回退方案。</li>
-</ol>
-
-<h3 id="toc_1">新老架构图</h3>
-
-<p>老架构是通过阿里云负载均衡，负载到某几台虚拟机的模式。新架构是请求负载的网关实例后，再转发到后端业务实例的模式。</p>
-
-<p>老方案架构图<br/>
-<img src="media/16141437029693/16141454079008.jpg" alt="old architecture"/></p>
-
-<p>新方案架构图<br/>
-<img src="media/16141437029693/16141456106478.jpg" alt="new architecture"/></p>
-
-<h3 id="toc_2">过渡方案架构图</h3>
-
-<p>为保证服务平滑迁移，我们希望能把一部分老架构的流量迁移到新架构中，同时也要保证这个流量是可控的，比如说是按 0 -&gt; 100% 之间可控。</p>
-
-<p>过渡方案架构图<br/>
-<img src="media/16141437029693/16141458541574.jpg" alt="migrating architecture"/></p>
-
-<p>上图方案中，我们在老架构的负载均衡后增加了一个特殊的节点，该节点本身不处理请求，但是可以将请求转发到新架构中，并能拿到处理结果的返回。然后我们调整节点的权重，控制流量转移到新架构中去。等到全部流量都导到新架构中去时，我们从源头将域名解析切换到新架构的负载均衡中。上述负载均衡都是阿里云公网 IP 型的。</p>
-
-<p>简单评价下，该方案导流到新架构的流量大小是可控的（从 0 到 1）。迁移方案过程中，老架构后端 ECS 一直保留，只要将特殊节点的权重置 0，即可回退。扩展性好，可通过控制特殊节点数量，水平扩缩。</p>
-
-<p><strong>注意点</strong>：随着流量渐渐转移到新架构中，上图中那个特殊节点转发的流量渐渐变成了全量，对此我们需要有相应的监控，因为该节点才是整个方案中的瓶颈。另外该特殊节点是可以水平扩展了，一个不够的话可以部署 2 个，甚至 3 个，这个完全取决于待迁移服务的流量大小。</p>
-
-<h2 id="toc_3">总结</h2>
-
-<p>介绍了一个简单的架构迁移方案，但实际上也能应对大部分的场景，兼顾高效和可行性。迁移方案的设计需要熟悉新老两套架构，还要兼顾业务场景，某种角度说，迁移方案是没有优劣的，合适的就是最好的。</p>
 
                         
                       </div>
@@ -349,7 +192,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16141437029693.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/24</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -378,68 +221,6 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                         
                         	<p>网关顺利搭起来了，接下来就要验收的时候了。我针对 Kong Gateway + Kubernetes 的形式进行了一些基本操作的验收，主要包括创建，重启，升级等。</p>
 
-<h2 id="toc_0">后端服务背景</h2>
-
-<p>后端服务的结构是 nginx + fpm，整体打包成一个镜像，以 deployment 的形式在 K8s 集群中部署。链路架构为</p>
-
-<p><img src="media/16140686104928/16140688900376.jpg" alt="请求链路流程"/></p>
-
-<p>关于为什么在 Kong 网关前嵌套一个阿里云默认 SLB 的原因在之前的文章中有提到，这个不影响本次的验收。</p>
-
-<h2 id="toc_1">稳定性验收</h2>
-
-<p>我在新建部署，重启实例和滚动升级过程中，都会发起一定并发的请求。在多实例互为备份的情况下，我期望做这些操作对服务稳定性是透明的。实际验收中，遇到了以下几个问题：</p>
-
-<h3 id="toc_2">实例刚新建后遇到 5xx 报错</h3>
-
-<p>我们将 nginx 和 fpm 集中在一个容器里，这里就涉及到谁先运行的问题，两者之间总归有一点间隙。之前的问题就是 nginx 先启动后开始接收请求，但是对应的 fpm 还没准备好，因此产生了报错。</p>
-
-<p>改进: 先运行 fpm 后运行 nginx，修改 Dockerfile 文件，</p>
-
-<pre><code class="language-text">CMD service php5.6-fpm start &amp;&amp; nginx -g &quot;daemon off;&quot;
-</code></pre>
-
-<h3 id="toc_3">升级过程中，Kong Gateway 显示实例 DNS error.</h3>
-
-<p>现象是升级过程中，出现后端服务不可用。我们选择的升级模式是滚动升级，是新建一个新版的实例后，再缩一个老版本的实例，如此滚动，直到完成升级。升级过程中，理论上不应该出现此类异常。</p>
-
-<p>原因分析：Kong 的 Controller 需要将 Pods 起停信息同步到 Kong 中去，两边信息可能存在不一致。后端实例已经发生更新，但 Kong 中还保留着老实例对应的 target 信息。此时，如果请求转发到该 target，此时其后端实例有可能正在 Terminating，也有可能已经被清理了，那么该请求就会出现异常。</p>
-
-<p><img src="media/16140686104928/16140719208088.jpg" alt="problem when updating"/></p>
-
-<p>我的思路是通过延长后端实例实际 graceful shutdow 时间，当出现上述情况时，我们还保留着老版本实例，虽然它正处于 Terminating 状态，但仍具备处理请求的能力。但是我不能直接修改程序的 graceful shutdown 的逻辑，我通过 K8s Pod 生命周期中支持的 <code>preStop</code> 功能实现。</p>
-
-<pre><code class="language-text">          lifecycle:
-            preStop:
-              exec:
-                command:
-                  - /bin/sh
-                  - &#39;-c&#39;
-                  - sleep 10 &amp;&amp; nginx -s quit
-</code></pre>
-
-<h4 id="toc_4">引申</h4>
-
-<p>当我们升级 Kong deployment 时会不会同样的问题，这个其实取决于 Kong 上层的负载均衡能否及时感知到 Kong 实例的起停变化，但理论上都存在同样的问题。</p>
-
-<p>且 Kong deployment 默认也开启了 <code>preStop</code> 功能：</p>
-
-<pre><code class="language-text">    image: kong:2.2
-    imagePullPolicy: IfNotPresent
-    lifecycle:
-      preStop:
-        exec:
-          command:
-          - /bin/sh
-          - -c
-          - kong quit
-</code></pre>
-
-<p>我们适当增加一定的 “续命时间”：10s，即 <code>sleep 10 &amp; kong quit</code>。</p>
-
-<h2 id="toc_5">总结</h2>
-
-<p>将 Kong 网关和 Kubernetes 结合时，特别是升级过程中，请求的分配存在一定的缺陷，如果我们不能直接从 Kong 中入手的话，我们可以结合 K8s 的特性去尝试。</p>
 
                         
                       </div>
@@ -447,7 +228,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16140686104928.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/23</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -478,94 +259,6 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
 
 <p>当现成的插件满足不了我们的需求，我们就要实现自己的插件，然后借这个机会，把整个自定义插件的开发，发布流程记录下。</p>
 
-<!--more-->
-
-<h2 id="toc_0">资料</h2>
-
-<p>首先是基础的 <a href="https://docs.konghq.com/gateway-oss/2.3.x/plugin-development/">Plugin Development Guide</a> 和 <a href="https://docs.konghq.com/gateway-oss/2.3.x/pdk/">Plugin Development Kit</a>，这两篇只是给了我们插件内部实现的文档。接着强烈推荐 <a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/setting-up-custom-plugins/">Setting up custom plugin in Kubernetes environment</a>，这篇特别适合不熟悉 lua 的开发者，其中也给了一个非常好的 demo 。</p>
-
-<h2 id="toc_1">新插件代码</h2>
-
-<p>插件需求：我尝试使用 Kong Proxy Cache（请求缓存插件）后发现产生了一个疑问：缓存的命中率如何？</p>
-
-<p>从监控上，我能看到所有请求的统计情况，但是我看不出有多少请求是命中了缓存的，可能是那些时延比较低的请求，但是不够精确和量化。我就想如果能在监控信息中夹带是否命中的数据，那么在监控展示时，根据这个数据过滤，然后就能得到准确的命中率了。</p>
-
-<p>插件实现思路：观察 Kong grafana 监控，我们注意到请求的监控数据条目是 <code>kong_http_status</code>。直接的想法是，要是在这个 Prometheus 条目上增加名为 “cache” 的 tag 就好了。</p>
-
-<p>然后我们顺着这个想法找到 Prometheus Plugin <a href="https://github.com/Kong/kong-plugin-prometheus">源码</a>，修改源码，详见：<a href="https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus%E3%80%82">https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus。</a></p>
-
-<p>我们主要改动的地方有：</p>
-
-<ul>
-<li>修改 plugin 的命名，一定要跟原来不一样。</li>
-</ul>
-
-<pre><code class="language-text">// in handler.lua file
-
--- local prometheus = require &quot;kong.plugins.prometheus.exporter&quot;
-local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
-</code></pre>
-
-<ul>
-<li>增加自定义 tag： cache。</li>
-</ul>
-
-<pre><code class="language-text">  metrics.status = prometheus:counter(&quot;http_status&quot;,
-        &quot;HTTP status codes per service/route in Kong&quot;,
-        -- {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;})
-        {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;, &quot;cache&quot;})
-</code></pre>
-
-<pre><code class="language-text">    labels_table[4] = &quot;Unknown&quot;
-    if message.response.headers[&quot;x-cache-status&quot;] then 
-      labels_table[4] = message.response.headers[&quot;x-cache-status&quot;]
-    end
-</code></pre>
-
-<p>我们在这里需要注意的是：<strong>插件的执行顺序</strong>。根据我们的需求，监控插件需要判断出哪些请求命中了缓存，哪些没有命中，所以必须安排在缓存插件之后执行。</p>
-
-<p>简单解释下 HTTP header： x-cache-status。该 header 是经过缓存插件后附加到 response Header 上。其中取值有：Hit（命中），Miss（未命中），Bypass(不考虑缓存)，Refresh(缓存超时)。我们不在乎具体取值是什么，如果发现 header 中有 “x-cache-status” ，就在该请求的监控条目中设置 cache tag。</p>
-
-<h2 id="toc_2">集成新插件</h2>
-
-<p>我们接下来需要将新插件集成到 Kong 网关中。我觉得，在 Kong Ingress Controller（K8s 集群）环境下集成插件比原生 Kong 环境更方便。</p>
-
-<p>先将代码以 configMap 的形式录入到 K8s 集群，</p>
-
-<pre><code class="language-text">kubectl create cm kong-plugin-caoliao-prometheus --from-file=caoliao-prometheus -n kong
-</code></pre>
-
-<p>然后修改 KIC deployment，</p>
-
-<pre><code class="language-text">      - env:
-        - name: KONG_PLUGINS
-          value: bundled,caoliao-prometheus
-        - name: KONG_LUA_PACKAGE_PATH
-          value: /opt/?.lua;;
-
-        volumeMounts:
-        - mountPath: /opt/kong/plugins/caoliao-prometheus
-          name: kong-plugin-caoliao-prometheus
-
-      volumes:
-        - configMap:
-            name: kong-plugin-caoliao-prometheus
-          name: kong-plugin-caoliao-prometheus
-</code></pre>
-
-<p>如上如升级网关即可。</p>
-
-<h2 id="toc_3">监控展示</h2>
-
-<p>设计 3 条 Metrics Query，分别是命中缓存的请求 RPS，总请求 RPS 以及命中率。</p>
-
-<p><img src="media/16140568914659/16140676902731.jpg" alt="Hit ratio"/></p>
-
-<h2 id="toc_4">总结</h2>
-
-<p>我们通过小小修改了 Kong Prometheus Plugin 源码，走完了自定义插件从开发到集成发布的全过程。Kong 的很多插件，我们都是可以找到源码的，如果是和我一样不熟悉 lua 的开发者，我建议优先考虑在源码的基础上改进，而不要自己造轮子。</p>
-
-<p>另外，Kong 还支持 golang 插件，有机会我也想尝试下。</p>
 
                         
                       </div>
@@ -573,7 +266,7 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16140568914659.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/23</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -606,49 +299,6 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
 
 <p>另外，Kong 还有官方 Grafana dashboard 模板，只要适配好监控源，完全可以实现一键搭建监控图，详见：<a href="https://grafana.com/grafana/dashboards/7424%E3%80%82">https://grafana.com/grafana/dashboards/7424。</a></p>
 
-<!--more-->
-
-<h2 id="toc_0">准备</h2>
-
-<p>在谈监控前，我们首先要完善 Prometheus（这个 Prometheus 不是指插件，而是监控采集工具），我这里是直接使用阿里云的监控采集，省去了 Prometheus 的安装以及数据存储问题。</p>
-
-<p>如果是自己动手部署话，就需要通过 Kong Service 地址 + 监控 Port 的形式准确采集即可。成功的话，大概会和下图一样：<br/>
-<img src="media/16139733008830/16139771292593.jpg" alt="Grafana without Prometheus Plugin"/></p>
-
-<p>只有 Kong 自身的监控数据，并不涉及请求相关的。</p>
-
-<h2 id="toc_1">一般插件的适配</h2>
-
-<p>首先，官方提供了一定的功能插件，详见：<a href="https://docs.konghq.com/hub/%EF%BC%8C%E7%84%B6%E5%90%8E%E6%88%91%E4%BB%AC%E4%B9%9F%E5%8F%AF%E4%BB%A5%E5%9C%A8%E5%AE%98%E6%96%B9%E6%96%87%E6%A1%A3%E6%89%BE%E5%88%B0">https://docs.konghq.com/hub/，然后我们也可以在官方文档找到</a> “通过 K8s 自定义资源适配 Kong 各种插件的” 方式，详见：<a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/concepts/custom-resources/%E3%80%82">https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/concepts/custom-resources/。</a></p>
-
-<p>但是我不推荐。</p>
-
-<p>不推荐的理由是，上述自定义资源，就像一个桥梁连接了插件和对应的路由（Kong Routes）和服务（Kong Services）。这些都存在 K8s 数据信息中心，但是接下来，你一旦修改插件的参数，而这个修改是不会计入到 K8s 资源中去的，等到 Kong 重启后，插件的信息就会恢复到一开始的样子。</p>
-
-<p>所以我推荐通过 Admin API 操作插件。</p>
-
-<h2 id="toc_2">Admin API 操作插件</h2>
-
-<p>通过 Konga UI，我们可以很方便的启用插件，注意插件也是分全局插件和针对性的插件，下午我们直接创建了一个全局的 Prometheus Plugin。</p>
-
-<p><img src="media/16139733008830/16139745049283.jpg" alt="Add Prometheus Plugin"/></p>
-
-<p>然后在去查看 Grafana 监控，就可以看到请求相关的监控了。<br/>
-<img src="media/16139733008830/16139772451414.jpg" alt="Grafana with Prometheus Plugin"/></p>
-
-<h2 id="toc_3">其他插件的操作</h2>
-
-<p>Kong 提供了很多免费的插件，几乎都可以在 konga UI 上直接操作，例如 Rate Limiting 等。但是，我发现在操作 Proxy Cache Plugin 时，konga 无法将一些参数有效地传递给 Kong，如果出现了这种情况，我们就不得不使用 Kong 自定义资源了，每次修改都需要删除老的定义，新建新的定义。</p>
-
-<p>另外，我们也可以自行开发插件，同样也可以在 konga 上操作。</p>
-
-<h2 id="toc_4">总结</h2>
-
-<p>官方推荐使用 Kong Custom Resources 的形式适配插件，但是不支持修改，所以我推荐通过 konga + Kong Admin API 的方式，既减轻了我们理解的负担，也方便具体操作。</p>
-
-<p>上述不足的地方在于，konga 存在一些 bug，不能正确解析某些 Plugin 字段，那么这时候我们还是要靠 Kong Custom Resources 的形式。</p>
-
-<p>免费插件有很多，我们就不一一介绍了，之后我们也会提供自定义插件的例子。</p>
 
                         
                       </div>
@@ -656,7 +306,7 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16139733008830.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/02/22</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -685,38 +335,6 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                         
                         	<p>开启 Kong 网关在 Kubernetes 集群的实践。</p>
 
-<!--more-->
-
-<h2 id="toc_0">背景</h2>
-
-<p>其实在开始将 Kong 之前，我们不能不先回答两个问题是：1. 为什么要有 API Gateway ？2. 为什么选 Kong 作为网关 ？</p>
-
-<p>第一个问题直接略过。简单回答下第二个问题。</p>
-
-<p>面对这问题的时候，其实是一个技术选型的问题，因此我们作为普通开发人员，一般从以下几个方面去平衡，去选择：</p>
-
-<ol>
-<li>技术栈：除了网关本身的实现，也要考虑与自身业务的技术对接。</li>
-<li>费用：开源或收费。</li>
-<li>成熟：是否经受生产环境验证，是否被光大用户验证。</li>
-<li>部署/运维成本：与云原生（Kubernetes）的兼容性。</li>
-<li>功能/插件/中间件：网关功能是否丰富，是否有丰富的插件库，是否方便添加自定义插件/中间件。</li>
-<li>接受水平：开发人员的接受能力，能力越强，那么对 API Gateway 要求就可以放低，反之亦然。</li>
-</ol>
-
-<p>其中 JAVA 系不需要考虑上面，考虑就是 Spring 全家桶。然后，我后来也问过阿里云的技术支持，他们告诉我，他们的企业用户主要以<a href="https://github.com/Kong/kong">Kong</a>和<a href="https://github.com/TykTechnologies/tyk">tyk</a>为主。</p>
-
-<p>然后我说下选择的原因。我所处的环境是 nginx + php 的技术栈，对 nginx 和 lua 有倾向性，然后周围的同事觉得平时接触过，就觉得能驾驭 Kong，因此相中了 Kong。</p>
-
-<h2 id="toc_1">布局</h2>
-
-<p>API Gateway 的加入或者调整往往伴随着业务技术架构的变化，而我也面临 SLB(负载均衡) + AliyunECS(nginx+php) 转型到 SLB + Kubernetes 的变迁。 </p>
-
-<p><img src="media/16106134732911/16106168575309.jpg" alt="ECS 架构"/></p>
-
-<p><img src="media/16106134732911/16106168275322.jpg" alt="Kubernetes 架构"/></p>
-
-<p>另外我们还要考虑如何从 ECS 架构平滑地迁移到 Kubernetes 架构，以及业务 APP 和网关 Kong API Gateway 如何落地的问题。</p>
 
                         
                       </div>
@@ -724,7 +342,7 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16106134732911.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/01/14</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -761,179 +379,6 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
 
 <p>相关代码见：<a href="https://github.com/yuyulei/blog-codes">https://github.com/yuyulei/blog-codes</a></p>
 
-<!--more-->
-
-<h2 id="toc_0">部署</h2>
-
-<h3 id="toc_1">部署组件</h3>
-
-<ol>
-<li>Kong Ingress Controller（包括 Kong Gateway 和 controller）
-<ol>
-<li>来源：<a href="https://github.com/Kong/kubernetes-ingress-controller#get-started">Get started</a> 和 <a href="https://bit.ly/k4k8s">yaml 文件</a>。</li>
-</ol></li>
-<li>Konga（免费的 UI 界面）
-<ol>
-<li>来源：<a href="https://github.com/pantsel/konga">github konga</a>。</li>
-</ol></li>
-<li>DB 模式</li>
-</ol>
-
-<p>前两点，按照说明文档安装即可，第三点我们简单说明一下。</p>
-
-<p>普通场景下，我们通过 Kong Admin API 操作 Kong 中的各种内部资源（Services，Routes，Upstreams，Targets，Plugins 等），然后保存在数据库里的（方便多个 Kong 实例共享数据）。但是在云原生环境中，Kong Ingress Controller 尝试将 K8s 里的资源概念转化为 Kong 的内部资源，比如说将 K8s 的 Pods 转化为 Kong 的 Targets。换言之，在普通场景下，Kong 中的内部资源来源自 Admin API 调用，而云原生场景下，来源自 K8s 资源对象。两种来源实际上 Kong Ingress Controller 都支持，但是为了避免冲突，官方推荐使用 DBLess 模式，也就是推荐所有内部对象均来源自 K8s 资源，某种程度上也简化了部署。</p>
-
-<p>但在生产使用中发现，DBLess 模式带来了一些弊端：</p>
-
-<ol>
-<li>无法通过 Admin API 对 Kong 执行所有的写请求相关的操作（因为无数据库保存，只能保存在内存中，一旦重启就丢数据）。</li>
-<li>Kong 实例间无法共享配置信息，限流限速数据，甚至缓存内容。因此最终的结论是</li>
-</ol>
-
-<p>为了避免操作冲突，达成操作共识：</p>
-
-<ol>
-<li>开启 DB 模式</li>
-<li>Kong 中的 Routes，Services，Upstream，Targets 完全交于数据由 Controller 同步。</li>
-<li>Kong 中的 Plugins 数据完全由 AdminAPI（也就是 konga 界面操作而来）操作。</li>
-</ol>
-
-<h3 id="toc_2">部署细节</h3>
-
-<h4 id="toc_3">KIC（Kong Ingress Controller）</h4>
-
-<p>主要 yaml 文件参考对应 github repo 里的链接，做以下几处修改：</p>
-
-<pre><code class="language-text">    #1
-    - name: KONG_ADMIN_LISTEN
-      value: &#39;0.0.0.0:8001, 127.0.0.1:8444 ssl&#39;
-    
-    #2         
-    - name: KONG_DATABASE
-      value: postgres
-    - name: KONG_PG_HOST
-      value: postgres
-    - name: KONG_PG_USER
-      value: kong
-    - name: KONG_PG_PASSWORD
-      value: kong
-</code></pre>
-
-<p>第一点是开放 HTTP Admin 接口给 konga，第二点是依赖的 DB，<strong>注意</strong>这里 DB Host 填 postgres，是依赖了 K8s service DNS 方式。如果是外部的 DB，可能要将地址填完整。</p>
-
-<p>另外，修改 Service kong-proxy 的端口，增加 Admin 端口和监控采集端口，如下</p>
-
-<pre><code class="language-text">  - name: admin
-    port: 8001
-    protocol: TCP
-    targetPort: 8001
-  - name: monitor
-    port: 8100
-    protocol: TCP
-    targetPort: 8100
-  selector:
-    app: ingress-kong
-  type: LoadBalancer
-</code></pre>
-
-<p><code>LoadBalancer</code> 类型的 Service 会由云厂商的具体实现，像阿里云的话会自动生成一个与之匹配的<a href="https://help.aliyun.com/document_detail/86531.html">负载均衡</a>。</p>
-
-<h4 id="toc_4">konga</h4>
-
-<p>主要 yaml 文件来自 github konga，但是我们为其增加了一个指定到数据库，如下</p>
-
-<pre><code class="language-text">       env:
-        - name: DB_ADAPTER
-          value: postgres
-        - name: DB_HOST
-          value: postgres
-        - name: DB_PORT
-          value: &quot;5432&quot;
-        - name: DB_USER
-          value: kong
-        - name: DB_PASSWORD
-          value: kong
-        - name: DB_DATABASE
-          value: konga
-        - name: DB_PG_SCHEMA
-          value: konga
-</code></pre>
-
-<p>因为 konga 数据量很小，我们简单与 Kong 共享一个数据库。</p>
-
-<h4 id="toc_5">DB</h4>
-
-<p>我们强烈推荐 Postgres，简单点的话可以用 K8s EmptyDir 作为数据挂载点，但是生产的话可以以实际的盘作为挂载点。</p>
-
-<h3 id="toc_6">初步部署</h3>
-
-<p>等待上面三组件部署完成，我们应该可以直接访问 konga 界面。</p>
-
-<p>如果有公网域名，我们可以将公网域名指到负载均衡 SLB 访问，还需要为 konga 向 Kong 注册一个路由（ingress 方式）。<br/>
-如果没有公网域名，我们可以将 konga Pod/Service 端口暴露出来，例如</p>
-
-<pre><code class="language-text">kubectl port-forward pod/konga-bdddd476b-ms2rw 8337:1337 -nkong
-</code></pre>
-
-<p>浏览器访问 localhost:8337</p>
-
-<p><img src="media/16106134534236/16138078982208.jpg" alt="konga UI"/></p>
-
-<h2 id="toc_7">回到阿里云</h2>
-
-<p>现方案链路如下</p>
-
-<p><img src="media/16106134534236/16138098917551.jpg" alt="请求概览#1" style="width:300px;"/></p>
-
-<p>上面的方式是没有问题的，但是我们是利用阿里云提供的请求概览，请求日志分析等功能，我们选在把 Kong 网关接在集群默认 Nginx Ingress Controller 之后（阿里云中的 K8s 集群会默认自带一个 Nginx Ingress Controller）。</p>
-
-<p><img src="media/16106134534236/16138108919231.jpg" alt="请求概览#2" style="width:400px;"/></p>
-
-<p>我们把 Kong 作为一个特殊的服务，承载所有业务请求，然后 Kong 实例根据保存的路由关系，选择将请求转发到对应方后端实例上。通过阿里云默认负载均衡对所有请求加以分析和统计。</p>
-
-<p>下面是请求概览的展示，十分适合业务开发人员的查阅。<br/>
-<img src="media/16106134534236/16138116685705.jpg" alt="请求概览统计" style="width:600px;"/></p>
-
-<h3 id="toc_8">调整细节</h3>
-
-<p>为了达到上述的效果，我们需要做以下调整。</p>
-
-<ol>
-<li>准备 Kong Service，并对应到 Kong Pods。</li>
-<li>创建 Kong 对应的 Ingress，注册路由到 Nginx Ingress Controller 下。</li>
-<li>创建所有业务应用对应的 Ingress, 注册路由到 Kong Ingress Controller 下。</li>
-</ol>
-
-<pre><code class="language-text">apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  annotations:
-    kubernetes.io/ingress.class: nginx
-  name: kong-proxy
-  namespace: kong
-spec:
-  rules:
-  - host: &#39;*&#39;
-    http:
-      paths:
-      - backend:
-          serviceName: kong-proxy
-          servicePort: 80
-...
-</code></pre>
-
-<p><code>kong-proxy</code> 是 Kong 网关对应的 K8s Service。</p>
-
-<p>通过 <code>kubernetes.io/ingress.class: nginx</code>，将 Kong Service（kong-proxy）支持的路由规则，注册到 Nginx Ingress Controller 之下。</p>
-
-<p>同理，具体某个服务的路由规则通过 K8s Ingress 和 <code>kubernetes.io/ingress.class: kong</code> 注册到 Kong Ingress Controller 之下。</p>
-
-<p>一环扣一环，将整个链路连起来。但我们注册路由规则时注意，前者注册 NIC 时可以使用通配符，后者注册 KIC 时可以细化，如下<br/>
-<img src="media/16106134534236/16138129583236.jpg" alt="注册路由规则"/></p>
-
-<h2 id="toc_9">总结</h2>
-
-<p>通过简单部署，将整个链路走通，然后选择适配云厂商提供的服务，进行链路调整，最终形成最后的链路形态。</p>
 
                         
                       </div>
@@ -941,7 +386,7 @@ spec:
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16106134534236.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/01/14</span>
                     <span>posted in&nbsp;</span> 
           				  
