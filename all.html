@@ -104,6 +104,76 @@
 		<div class="markdown-body home-categories">
 		
 			<div class="article">
+                <a class="clearlink" href="16142407630312.html">
+                
+                  <h1>Kong API Gateway 落地 Kubernetes 实践（七）：请求链路的参数优化</h1>
+                  <div class="a-content">
+                      
+                      <div class="a-content-text">
+                        
+                        	<p>就像对 nginx 配置参数优化的道理一样，我们也需要对阿里云默认 nginx-ingress-controller 和 Kong-ingress-controller 进行参数优化。</p>
+
+<h2 id="toc_0">增加对 response header 大小限制</h2>
+
+<p>Kong 增加环境变量的方式设置配置</p>
+
+<pre><code class="language-text">    - name: KONG_NGINX_PROXY_PROXY_BUFFER_SIZE
+      value: 128k
+    - name: KONG_NGINX_PROXY_PROXY_BUFFERS
+      value: 8 256k
+</code></pre>
+
+<p>阿里云 nginx-ingress-controller 调整配置</p>
+
+<pre><code class="language-text">proxy-buffer-size: &quot;128k&quot;
+</code></pre>
+
+<p>注意：nginx-ingress-controller 的配置来自于对应的 configMap。</p>
+
+<h2 id="toc_1">增加对 request body 大小限制</h2>
+
+<p>Kong error 日志中显示</p>
+
+<pre><code class="language-text">a client request body is buffered to a temporary file /usr/local/kong/client_body_temp/0000000006
+</code></pre>
+
+<p>Kong 增加参数配置</p>
+
+<pre><code class="language-text">- name: KONG_CLIENT_BODY_BUFFER_SIZE
+  value: 1024k
+</code></pre>
+
+<p>nginx 增加参数配置</p>
+
+<pre><code class="language-text">client-body-buffer-size: &quot;1024k&quot;
+</code></pre>
+
+                        
+                      </div>
+                  </div>
+                </a>
+                <div class="read-more clearfix">
+                  <div class="more-left left">
+                  
+                    <span class="date">2021/02/25</span>
+                    <span>posted in&nbsp;</span> 
+          				  
+          					    <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
+          				   
+                    
+
+                  </div>
+                  <div class="more-right right">
+                  <span class="comments">
+                      
+
+                       
+                  </span>
+                  </div>
+                </div>
+              </div><!-- article -->
+        
+			<div class="article">
                 <a class="clearlink" href="16142224354062.html">
                 
                   <h1>如何让 UDP 实现 TCP</h1>
@@ -1662,6 +1732,12 @@ spec:
 	      
 		      
 			      <li class="post">
+			        <a href="16142407630312.html">Kong API Gateway 落地 Kubernetes 实践（七）：请求链路的参数优化</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
 			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
 			      </li>
 		     
@@ -1685,10 +1761,6 @@ spec:
 		     
 		  
 		      
-			      <li class="post">
-			        <a href="16140568914659.html">Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件</a>
-			      </li>
-		     
 		  
 		      
 		  
@@ -1952,6 +2024,15 @@ pre[class*="language-"].line-numbers > code {
      
     </script>
 
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?9c0a4466e54e7d4edc81fbbc79cd40c7";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
 
 
   </body>
