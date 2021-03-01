@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  Kong API Gateway 落地 Kubernetes 实践（八）：运维 - 皮皮是条科技
+  Kong API Gateway 落地 Kubernetes 实践（九）：运维 - 皮皮是条科技
   
   </title>
   
@@ -104,7 +104,7 @@
       <div class="markdown-body article-wrap">
        <div class="article">
           
-          <h1>Kong API Gateway 落地 Kubernetes 实践（八）：运维</h1>
+          <h1>Kong API Gateway 落地 Kubernetes 实践（九）：运维</h1>
      
         <div class="read-more clearfix">
           <span class="date">2021/03/01</span>
@@ -158,6 +158,8 @@
 
 <p>推荐，重要服务独占 SLB，方便控制 SLB 的规格，也方便管理（日志采集，日志分析）。次要服务共享 SLB，共享规格，减少成本和数量。</p>
 
+<p>注：关于 SLB 的建立详见上一篇。</p>
+
 <h2 id="toc_5">K8s 日常操作对 Kong 网关的影响</h2>
 
 <p>注：这里我们假设 Kong 网关是以 Deployment 的形式部署的。</p>
@@ -166,9 +168,8 @@
 
 <p><strong>问题#1</strong>：重启节点前，必须先迁移走所有实例 Pod。而迁移 Kong Pod 时，则优先需要摘除网关流量。如何在摘除 SLB 转发到某节点的流量？</p>
 
-<p>阿里云里对应 K8s 的 SLB 是通过虚拟服务器组找到后端承载实例，如下图</p>
-
-<p><img src="media/16145655266226/16145702067793.jpg" alt="SLB 虚拟服务器组"/></p>
+<p>阿里云里对应 K8s 的 SLB 是通过虚拟服务器组找到后端承载实例，如下图<br/>
+<img src="media/16145655266226/16145702067793.jpg" alt="SLB 虚拟服务器组"/></p>
 
 <p>一种简单的办法是手动调整权重，待整个操作结束后在恢复权重，但这个方法在流程上不是很搭。<br/>
 另外我推荐的办法是：<a href="https://help.aliyun.com/document_detail/86531.html">自动移除SLB后端unschedulable状态的节点</a>。</p>
@@ -251,6 +252,9 @@ spec:
       <div class="row">
         <div class="large-6 columns">
         <p class="text-left" style="padding:15px 0px;">
+      
+          <a href="16145789246768.html" 
+          title="Previous Post: Kong API Gateway 落地 Kubernetes 实践（八）：自建 SLB">&laquo; Kong API Gateway 落地 Kubernetes 实践（八）：自建 SLB</a>
       
         </p>
         </div>
@@ -335,7 +339,13 @@ spec:
 	      
 		      
 			      <li class="post">
-			        <a href="16145655266226.html">Kong API Gateway 落地 Kubernetes 实践（八）：运维</a>
+			        <a href="16145789246768.html">Kong API Gateway 落地 Kubernetes 实践（八）：自建 SLB</a>
+			      </li>
+		     
+		  
+		      
+			      <li class="post">
+			        <a href="16145655266226.html">Kong API Gateway 落地 Kubernetes 实践（九）：运维</a>
 			      </li>
 		     
 		  
@@ -358,10 +368,6 @@ spec:
 		     
 		  
 		      
-			      <li class="post">
-			        <a href="16141437029693.html">Kong API Gateway 落地 Kubernetes 实践（五）：迁移</a>
-			      </li>
-		     
 		  
 		      
 		  
