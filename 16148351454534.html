@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>
     
-  Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件 - 皮皮是条科技
+  大型有状态服务基于 K8s 的落地实践（零）：背景 - 皮皮是条科技
   
   </title>
   
@@ -106,14 +106,14 @@
       <div class="markdown-body article-wrap">
        <div class="article">
           
-          <h1>Kong API Gateway 落地 Kubernetes 实践（三）：自定义插件</h1>
+          <h1>大型有状态服务基于 K8s 的落地实践（零）：背景</h1>
      
         <div class="read-more clearfix">
-          <span class="date">2021/02/23</span>
+          <span class="date">2021/03/04</span>
 
           <span>posted in&nbsp;</span> 
           
-              <span class="posted-in"><a href='Kong%20API%20Gateway%20%E7%BD%91%E5%85%B3%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>Kong API Gateway 网关在 Kubernetes 集群的落地实战</a></span>
+              <span class="posted-in"><a href='%E5%A4%A7%E5%9E%8B%E6%9C%89%E7%8A%B6%E6%80%81%E6%9C%8D%E5%8A%A1%E5%9C%A8%20Kubernetes%20%E9%9B%86%E7%BE%A4%E7%9A%84%E8%90%BD%E5%9C%B0%E5%AE%9E%E6%88%98.html'>大型有状态服务在 Kubernetes 集群的落地实战</a></span>
            
          
           <span class="comments">
@@ -126,98 +126,66 @@
       </div><!-- article -->
 
       <div class="article-content">
-      <p>经过上一篇，加上自己尝试的话，基本上会对 Kong 插件的使用方式有个印象了。接下来，我们来说说自定义插件。</p>
+      <p>记录我在一线互联网大厂实现大型有状态服务在 K8s 集群的落地实践。总计持续 2 年时间，其中包括：</p>
 
-<p>当现成的插件满足不了我们的需求，我们就要实现自己的插件，然后借这个机会，把整个自定义插件的开发，发布流程记录下。</p>
+<ol>
+<li>开发有状态服务框架（第一版）。</li>
+<li>实现业务服务（搜索，广告，推荐，存储）迁移到 K8s 集群的过程。</li>
+<li>总结瓶颈，更新有状态服务框架（第二版）。</li>
+<li>实现已迁服务的平滑迁移，迎接更高要求服务的检验。</li>
+</ol>
+
+<p>该项目中解决功能需求是十分普遍的，难度也基本上达到了大厂里有状态服务的要求，对一般的有状态服务也有足够的参考意义，特别是其中一些做法也是很有想法的，也受到了同行的认可。</p>
+
+<p>在开始之前，我们已经假设选择了容器化编排服务 Kubernetes，至于为什么选择从物理机/虚拟器迁移到 Kubernetes，这里就不展开了。</p>
+
+<p>那么，我们先从场景开始描述。</p>
 
 <span id="more"></span><!-- more -->
 
-<h2 id="toc_0">资料</h2>
+<h2 id="toc_0">抽象出通用的需求场景</h2>
 
-<p>首先是基础的 <a href="https://docs.konghq.com/gateway-oss/2.3.x/plugin-development/">Plugin Development Guide</a> 和 <a href="https://docs.konghq.com/gateway-oss/2.3.x/pdk/">Plugin Development Kit</a>，这两篇只是给了我们插件内部实现的文档。接着强烈推荐 <a href="https://docs.konghq.com/kubernetes-ingress-controller/1.1.x/guides/setting-up-custom-plugins/">Setting up custom plugin in Kubernetes environment</a>，这篇特别适合不熟悉 lua 的开发者，其中也给了一个非常好的 demo 。</p>
+<p>我们以大型电商背后的搜索业务为需求方，我们从其中抽象出一些通用的功能需求，目的是能将这套方案落地到更宽广的范围。</p>
 
-<h2 id="toc_1">新插件代码</h2>
+<h3 id="toc_1">大数据集</h3>
 
-<p>插件需求：我尝试使用 Kong Proxy Cache（请求缓存插件）后发现产生了一个疑问：缓存的命中率如何？</p>
+<p>大型电商的搜索服务依靠庞大的数据集（TB 级别）。同时为了减少后端服务的响应时延，服务优先将数据的查询集到内存操作，而避免对磁盘/云盘的读写操作。<strong>疑问#1</strong>：如何将大数据集映射到内存中，或者替代方法？</p>
 
-<p>从监控上，我能看到所有请求的统计情况，但是我看不出有多少请求是命中了缓存的，可能是那些时延比较低的请求，但是不够精确和量化。我就想如果能在监控信息中夹带是否命中的数据，那么在监控展示时，根据这个数据过滤，然后就能得到准确的命中率了。</p>
+<p>根据当前硬件水平，阿里云已经支持 768G 内存的裸金属服务器，如下：<br/>
+<img src="media/16148351454534/16149282116471.jpg" alt="阿里云大内存机器规格"/></p>
 
-<p>插件实现思路：观察 Kong grafana 监控，我们注意到请求的监控数据条目是 <code>kong_http_status</code>。直接的想法是，要是在这个 Prometheus 条目上增加名为 “cache” 的 tag 就好了。</p>
+<p>2 年前的时候，当时能接触到最好的机器规格是 256G，同时，商品数据的规模每天都在增加（因为市场上的商品与日俱增）。一个好的框架是可以水平扩展的，不应该被硬件水平所局限。</p>
 
-<p>然后我们顺着这个想法找到 Prometheus Plugin <a href="https://github.com/Kong/kong-plugin-prometheus">源码</a>，修改源码，详见：<a href="https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus%E3%80%82">https://github.com/yuyulei/blog-codes/tree/master/kong-plugins/caoliao-prometheus。</a></p>
+<p>互联网有个思想：分治。我们也是从这个思路触发，请求处理图如下：<br/>
+<img src="media/16148351454534/16149298203214.jpg" alt="请求分治和数据分片"/></p>
 
-<p>我们主要改动的地方有：</p>
+<p>通过上图，我们简化了一下模型，业务请求试图访问 1TB 的数据集，返回满足条件的商品信息。</p>
 
-<ul>
-<li>修改 plugin 的命名，一定要跟原来不一样。</li>
-</ul>
+<p><strong>数据分片</strong>：因为 1TB 数据无法用单台机器承载（内存层面），我们先将数据集分成不同的 4 片，并加载到相应的机器上。<br/>
+<strong>请求分治</strong>：将单个请求分拆成 4 个，然后将 4 个请求结果 merge 后再返回前端。</p>
 
-<pre><code class="language-text">// in handler.lua file
+<p>该思路不但解决了大数据集加载的问题，更减少了请求处理的时延（平均时延为原来的 1/4）。</p>
 
--- local prometheus = require &quot;kong.plugins.prometheus.exporter&quot;
-local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
-</code></pre>
+<h3 id="toc_2">水平扩展</h3>
 
-<ul>
-<li>增加自定义 tag： cache。</li>
-</ul>
+<p>高并发，大流量的请求，可能对后端实例带来巨大压力，甚至导致实例奔溃。<strong>疑问#2</strong>：存在水平扩展方案吗？<br/>
+<img src="media/16148351454534/16149316188872.jpg" alt="水平扩展"/></p>
 
-<pre><code class="language-text">  metrics.status = prometheus:counter(&quot;http_status&quot;,
-        &quot;HTTP status codes per service/route in Kong&quot;,
-        -- {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;})
-        {&quot;service&quot;, &quot;route&quot;, &quot;code&quot;, &quot;cache&quot;})
-</code></pre>
+<p>以<code>分片#0</code>为例，我们可以构建出地位对等的实例（分片#0的副本#0 和 分片#0的副本#1），作为后端承载点，均分流量。</p>
 
-<pre><code class="language-text">    labels_table[4] = &quot;Unknown&quot;
-    if message.response.headers[&quot;x-cache-status&quot;] then 
-      labels_table[4] = message.response.headers[&quot;x-cache-status&quot;]
-    end
-</code></pre>
+<p>好在这个场景里，各个分片数据的请求量是同步增加或缩减的，因此我们水平扩缩的对象实际上是一个完整的数据集服务（如上图里的一行实例）。</p>
 
-<p>我们在这里需要注意的是：<strong>插件的执行顺序</strong>。根据我们的需求，监控插件需要判断出哪些请求命中了缓存，哪些没有命中，所以必须安排在缓存插件之后执行。</p>
+<h3 id="toc_3">快速起停+弹性部署</h3>
 
-<p>简单解释下 HTTP header： x-cache-status。该 header 是经过缓存插件后附加到 response Header 上。其中取值有：Hit（命中），Miss（未命中），Bypass(不考虑缓存)，Refresh(缓存超时)。我们不在乎具体取值是什么，如果发现 header 中有 “x-cache-status” ，就在该请求的监控条目中设置 cache tag。</p>
+<p>接着上面的水平扩容，接下来就是<strong>疑问#3</strong>：如何快速的扩缩，升级？</p>
 
-<h2 id="toc_2">集成新插件</h2>
+<p>我们的应对方法是容器化编排（Kubernetes），将资源池化，自动化管理资源的整合和调度。后面会基于 Kubernetes CRD（Custom Resource Definition）来实现上图服务实例的“矩阵化”。</p>
 
-<p>我们接下来需要将新插件集成到 Kong 网关中。我觉得，在 Kong Ingress Controller（K8s 集群）环境下集成插件比原生 Kong 环境更方便。</p>
-
-<p>先将代码以 configMap 的形式录入到 K8s 集群，</p>
-
-<pre><code class="language-text">kubectl create cm kong-plugin-caoliao-prometheus --from-file=caoliao-prometheus -n kong
-</code></pre>
-
-<p>然后修改 KIC deployment，</p>
-
-<pre><code class="language-text">      - env:
-        - name: KONG_PLUGINS
-          value: bundled,caoliao-prometheus
-        - name: KONG_LUA_PACKAGE_PATH
-          value: /opt/?.lua;;
-
-        volumeMounts:
-        - mountPath: /opt/kong/plugins/caoliao-prometheus
-          name: kong-plugin-caoliao-prometheus
-
-      volumes:
-        - configMap:
-            name: kong-plugin-caoliao-prometheus
-          name: kong-plugin-caoliao-prometheus
-</code></pre>
-
-<p>如上如升级网关即可。</p>
-
-<h2 id="toc_3">监控展示</h2>
-
-<p>设计 3 条 Metrics Query，分别是命中缓存的请求 RPS，总请求 RPS 以及命中率。</p>
-
-<p><img src="media/16140568914659/16140676902731.jpg" alt="Hit ratio"/></p>
+<p>这里不展开讨论 Kubernetes 优势了，有兴趣的可以查找相关资料。</p>
 
 <h2 id="toc_4">总结</h2>
 
-<p>我们通过小小修改了 Kong Prometheus Plugin 源码，走完了自定义插件从开发到集成发布的全过程。Kong 的很多插件，我们都是可以找到源码的，如果是和我一样不熟悉 lua 的开发者，我建议优先考虑在源码的基础上改进，而不要自己造轮子。</p>
-
-<p>另外，Kong 还支持 golang 插件，有机会我也想尝试下。</p>
+<p><strong>大数据集</strong>和<strong>水平扩缩</strong>是搜索服务必须面对的问题，这些上层服务需求的基础。同时，基于<strong>快速起停+弹性部署</strong>出发，我们选择 Kubernetes 容器编排作为底层部署的平台。上层服务需求配合底层平台，两者相互配合，才能实现最终的落地，后面我们一步步展开。</p>
 
 
     
@@ -228,16 +196,13 @@ local prometheus = require &quot;kong.plugins.caoliao-prometheus.exporter&quot;
         <div class="large-6 columns">
         <p class="text-left" style="padding:15px 0px;">
       
-          <a href="16140686104928.html" 
-          title="Previous Post: Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化">&laquo; Kong API Gateway 落地 Kubernetes 实践（四）：稳定性优化</a>
-      
         </p>
         </div>
         <div class="large-6 columns">
       <p class="text-right" style="padding:15px 0px;">
       
-          <a  href="16139733008830.html" 
-          title="Next Post: Kong API Gateway 落地 Kubernetes 实践（二）：可用插件与监控采集">Kong API Gateway 落地 Kubernetes 实践（二）：可用插件与监控采集 &raquo;</a>
+          <a  href="16145789246768.html" 
+          title="Next Post: Kong API Gateway 落地 Kubernetes 实践（八）：自建 SLB">Kong API Gateway 落地 Kubernetes 实践（八）：自建 SLB &raquo;</a>
       
       </p>
         </div>
@@ -402,8 +367,6 @@ Theme used <a target="_blank" href="http://github.com">GitHub CSS</a>.</p>
 
 
 
-
-<script src="asset/prism.js"></script>
 
 
 <style type="text/css">
