@@ -166,71 +166,6 @@
 
 <p>实际情况中，存在某几个重要的服务，承载了大部分流量，它们的重要性足以让我们为其单独投入精力。我们为其设立独立的 SLB。</p>
 
-<h2 id="toc_0">K8s 集群 yaml 创建 SLB</h2>
-
-<p>给出一个样例 service.yaml。</p>
-
-<pre><code class="language-text">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-cert-id: ${证书 ID}
-    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-protocol-port: https:443,http:80
-    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-spec: slb.s2.small
-    service.beta.kubernetes.io/alicloud-loadbalancer-address-type: internet
-  labels:
-    app: slb-for-console
-      name: slb-for-console
-  namespace: kube-system
-spec:
-  externalTrafficPolicy: Local
-  ports:
-  - name: http
-    port: 80
-    protocol: TCP
-    targetPort: 80
-  - name: https
-    port: 443
-    protocol: TCP
-    targetPort: 80
-  selector:
-    app: ingress-nginx
-  type: LoadBalancer
-</code></pre>
-
-<p><code>type: LoadBalancer</code> 表明该 Service 会触发云平台 SLB 的创建。</p>
-
-<p><code>annotations</code> 中的配置项参考：<a href="https://help.aliyun.com/document_detail/86531.html%EF%BC%8C%E6%B6%89%E5%8F%8A%E5%88%B0%E5%86%85%E7%BD%91/%E5%A4%96%E7%BD%91%E5%9E%8B%EF%BC%8C%E8%A7%84%E6%A0%BC%E5%A4%A7%E5%B0%8F%EF%BC%8C%E4%BB%A5%E5%8F%8A">https://help.aliyun.com/document_detail/86531.html，涉及到内网/外网型，规格大小，以及</a> HTTP 协议等。</p>
-
-<p>然后需要注意的：我们选择的 7 层 SLB，无论 HTTP 和 HTTPS 请求，经过这个 SLB 后，就不再区别，因此我们必须将所有请求都转发到后端服务的 80 端口。所以会有：</p>
-
-<pre><code class="language-text">  - name: https
-    port: 443
-    protocol: TCP
-    targetPort: 80
-</code></pre>
-
-<h2 id="toc_1">对应 K8s 的 SLB</h2>
-
-<p>由上述 service.yaml 内容，由阿里云创建的 SLB 与一般 SLB 不同。</p>
-
-<p>一般的 SLB 后端是虚拟机（ECS），需要人手工将 ECS 的信息注册到 SLB 背后，譬如虚拟机 IP 地址，端口等。如果后端虚拟机加了一台或者减了一台，就需要人工将这个变化同步到 SLB 上。缺点：完全不适应 K8s Pod 形式，因为 K8s 集群上的实例（Pods）升级后/迁移后都是变化的。</p>
-
-<p>service.yaml 创建的 SLB 就是专门为了兼容 K8s 的场景而设计的。这种 SLB 后端不再是固定的 ECS，而是 “虚拟服务器组”。阿里云文档中这样描述：</p>
-
-<pre><code class="language-text">负载均衡默认是在实例维度上维护后端服务器组，即实例下的所有监听都使用相同的后端服务器组。虚拟服务器组允许用户在监听维度上个性化定义服务器组，即实例下的不同监听可使用不同的后端服务器组，可满足域名和URL转发个性化需求。
-</code></pre>
-
-<p>“虚拟服务器” 是一种规则，通过这规则找到符合要求的后端实例，比如说这个规则是 K8s 集群的所有工作的节点。</p>
-
-<p><img src="media/16145789246768/16145806769408.jpg" alt="负载均衡虚拟服务器组"/></p>
-
-<p>这个端口不是业务服务的端口，然是 Service 暴露的端口。</p>
-
-<pre><code class="language-text">![-w1103](media/16145789246768/16145809255077.jpg)
-</code></pre>
-
-<p>另外，虚拟服务器组与后端实例的绑定建立起来，后端实例的变动会同步到 SLB 上。反过来，我们不要主动去修改 SLB 的配置，避免和后端实例起冲突。</p>
 
                         
                       </div>
@@ -238,7 +173,7 @@ spec:
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16145789246768.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/03/01</span>
                     <span>posted in&nbsp;</span> 
           				  
@@ -269,121 +204,6 @@ spec:
 
 <p>运维包括服务的监控和报警，Kong 网关的日常管理操作，K8s 的日常操作（可能也会对 Kong 有影响），甚至如何结合阿里云这个平台，已达到简单高效的目的。</p>
 
-<h2 id="toc_0">整体业务与个体请求监控</h2>
-
-<h3 id="toc_1">根据：请求返回</h3>
-
-<p>通过 Kong 网关监控大盘，我们可以看到整体请求处理详情。在这个基础上，可以尝试做一个请求正常处理（2xx 返回）或异常处理（5xx 返回）百分比。<br/>
-<img src="media/16145655266226/16145663879594.jpg" alt="整体服务请求结果监控"/></p>
-
-<p>针对部分核心服务，根据请求返回施加报警，比如说请求正常处理（2xx 返回）百分比低于 99%时 触发告警，请求异常处理（5xx 返回）百分比高于 1% 时触发告警等。<br/>
-<img src="media/16145655266226/16145663551791.jpg" alt="个体服务请求结果监控"/></p>
-
-<h3 id="toc_2">根据：请求时延</h3>
-
-<p><img src="media/16145655266226/16145669276079.jpg" alt="整体服务请求结果监控"/></p>
-
-<p><img src="media/16145655266226/16145669730843.jpg" alt="个体服务请求结果监控"/></p>
-
-<p>针对部分核心服务，根据请求时延施加报警，比如说上图中的服务响应时间平时是 50ms 以下，我们可以设置一个 p95 线 500ms 时延的报警，当请求时延明显高于平常，很可能已经出现了问题，这个有助于我们提前发现问题。</p>
-
-<h2 id="toc_3">Kong 网关资源占用</h2>
-
-<p>一般 K8s 集群都会有节点的资源使用告警（CPU, 内存，磁盘等）和 Pod 资源使用告警（CPU，内存等）。Kong 网关也是以 Pod 形式运行，只要合理配置 CPU 和内存规格即可，报警可以参照集群默认告警。另外，因为 Kong 作为网关，是整个集群服务流量的进出口，因此也需要配置进出流量的监控。譬如说预防单个服务异常大流量打满带宽，导致其他正常服务受影响。</p>
-
-<p><img src="media/16145655266226/16145677991417.jpg" alt="Kong 实例监控图"/></p>
-
-<h2 id="toc_4">个别服务独占 SLB</h2>
-
-<p>业务服务通过 域名 -&gt; SLB -&gt;  K8s Kong 网关，网关是共享的，但是 SLB 可以是共享也可以是独立的。</p>
-
-<p>推荐，重要服务独占 SLB，方便控制 SLB 的规格，也方便管理（日志采集，日志分析）。次要服务共享 SLB，共享规格，减少成本和数量。</p>
-
-<p>注：关于 SLB 的建立详见上一篇。</p>
-
-<h2 id="toc_5">K8s 日常操作对 Kong 网关的影响</h2>
-
-<p>注：这里我们假设 Kong 网关是以 Deployment 的形式部署的。</p>
-
-<p>参照之前 “保留源 IP” 功能的要求，所有 K8s 节点作为 SLB 的后端承载者，所有节点上都要部署 Kong 网关节点。综上，我们操作节点时，就会涉及到 Kong 网关实例。下面我们以重启节点为例：</p>
-
-<p><strong>问题#1</strong>：重启节点前，必须先迁移走所有实例 Pod。而迁移 Kong Pod 时，则优先需要摘除网关流量。如何在摘除 SLB 转发到某节点的流量？</p>
-
-<p>阿里云里对应 K8s 的 SLB 是通过虚拟服务器组找到后端承载实例，如下图<br/>
-<img src="media/16145655266226/16145702067793.jpg" alt="SLB 虚拟服务器组"/></p>
-
-<p>一种简单的办法是手动调整权重，待整个操作结束后在恢复权重，但这个方法在流程上不是很搭。<br/>
-另外我推荐的办法是：<a href="https://help.aliyun.com/document_detail/86531.html">自动移除SLB后端unschedulable状态的节点</a>。</p>
-
-<ul>
-<li>kubectl cordon与kubectl drain命令会将节点置为unschedulable状态，默认service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的取值为off，此时不会将处于unschedulable状态的节点从SLB的后端服务器组移除。</li>
-<li>若需要从SLB的后端服务器组移除unschedulable状态的节点，请将service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的的取值设置为on。</li>
-</ul>
-
-<pre><code class="language-text">apiVersion: v1
-kind: Service
-metadata:
-  annotations:
-    service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend: &quot;on&quot;
-  name: nginx
-spec:
-  externalTrafficPolicy: Local
-  ports:
-  - name: http
-    port: 30080
-    protocol: TCP
-    targetPort: 80
-  selector:
-    app: nginx
-  type: LoadBalancer
-</code></pre>
-
-<p>结合 SLB 的这个特性，我们重新回到重启节点的例子中，流程为：</p>
-
-<ol>
-<li><code>kubectl cordon</code> 将节点置为 <code>unschedulable</code> 状态。</li>
-<li><code>kubectl drain</code> 排空实例。</li>
-<li>重启节点。</li>
-<li><code>kubectl uncordon</code> 将节点置为 <code>schedulable</code> 状态。</li>
-</ol>
-
-<p><strong>问题#2</strong>：扩缩节点时，要调整 Kong 网关的实例数量，即调整 Deployment 的副本数量。</p>
-
-<p><strong>问题#3</strong>：升级网关 Kong 实例。</p>
-
-<p>当前请求链路是 SLB 将请求转发到各个节点上，然后各节点上的 kube-proxy 将请求转发到该节点上的 Kong 实例上。假设以下场景：当升级 Kong 网关，Kong Pod 进入滚动升级阶段，SLB 没能及时同时得知这个信息（即使 SLB 上配置健康检查，也可能会有延后现象），SLB 仍将请求转发给老版本的 Kong Pod 实例，如果此时老版本的 Kong Pod 实例正处于 Terminating 状态或者已经完全退出，那么就会出现请求无人响应的情况。</p>
-
-<p>对此，我们严格意义上将升级 Kong 网关分成三步：</p>
-
-<ol>
-<li>先切流，组织流量进一步进入。</li>
-<li>以 <code>Recreate</code> 的升级策略进行升级（Deployment 的升级策略分为 “Recreate” 和 “RollingUpdate”，默认为 “RollingUpdate”）。</li>
-<li>恢复流量。</li>
-</ol>
-
-<p>切流和恢复流量的方式，可通过<strong>问题#1</strong>里面的方式即可。</p>
-
-<p>补充：我们期望尽量减少对网关的升级，不得已升级时，也必须做好详尽的调研和实验工作，把风险降到最低。</p>
-
-<p>再补充：如果想简化操作，我建议在流量低谷执行。</p>
-
-<h2 id="toc_6">业务 SLB 相关</h2>
-
-<h3 id="toc_7">请求日志分析</h3>
-
-<p>上面说了我们可以为重要的服务配置独占的 SLB，那么我推荐是 7 层的（应用层的），这样我们可以开启阿里云自带的日志分析功能。</p>
-
-<p><img src="media/16145655266226/16145762308837.jpg" alt="SLB access log"/></p>
-
-<p><img src="media/16145655266226/16145764647658.jpg" alt="SLB analysis"/></p>
-
-<p>通过简单的 query 语法，就能对业务请求有一定的了解和分析，对业务开发者而言是很有帮助的。</p>
-
-<p>注：7 层的 SLB 带来的一个坏处时，统一服务的，不同域名的 HTTPS 请求，就需要多个 SLB 了。如果是 4 层的 SLB 的话，就没有这方面的问题。</p>
-
-<h3 id="toc_8">业务 SLB 的监控和报警</h3>
-
-<p>阿里云 SLB 监控和报警参见文档即可，这里就不展开了</p>
 
                         
                       </div>
@@ -391,7 +211,7 @@ spec:
                 </a>
                 <div class="read-more clearfix">
                   <div class="more-left left">
-                  
+                   <a href="16145655266226.html">Read more</a>&nbsp;&nbsp; 
                     <span class="date">2021/03/01</span>
                     <span>posted in&nbsp;</span> 
           				  
