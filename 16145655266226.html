@@ -136,27 +136,41 @@
 
 <h3 id="toc_1">根据：请求返回</h3>
 
-<p>通过 Kong 网关监控大盘，我们可以看到整体请求处理详情。在这个基础上，可以尝试做一个请求正常处理（2xx 返回）或异常处理（5xx 返回）百分比。<br/>
-<img src="media/16145655266226/16145663879594.jpg" alt="整体服务请求结果监控"/></p>
+<p>通过 Kong 网关监控大盘，我们可以看到整体请求处理详情。在这个基础上，可以尝试做一个请求正常处理（2xx 返回）或异常处理（5xx 返回）百分比。</p>
 
-<p>针对部分核心服务，根据请求返回施加报警，比如说请求正常处理（2xx 返回）百分比低于 99%时 触发告警，请求异常处理（5xx 返回）百分比高于 1% 时触发告警等。<br/>
-<img src="media/16145655266226/16145663551791.jpg" alt="个体服务请求结果监控"/></p>
+<p>经过前面一系列的介绍，我们已经在阿里云的 K8s 集群上搭起了一套 Kong 网关，并通过平滑的迁移，将老架构中的服务逐步迁了过来，接下来就是考虑如何高效运维的思考了。</p>
 
-<h3 id="toc_2">根据：请求时延</h3>
+<p>运维包括服务的监控和报警，Kong 网关的日常管理操作，K8s 的日常操作（可能也会对 Kong 有影响），甚至如何结合阿里云这个平台，已达到简单高效的目的。</p>
 
-<p><img src="media/16145655266226/16145669276079.jpg" alt="整体服务请求结果监控"/></p>
+<!-- more -->
 
-<p><img src="media/16145655266226/16145669730843.jpg" alt="个体服务请求结果监控"/></p>
+<h2 id="toc_2">整体业务与个体请求监控</h2>
+
+<h3 id="toc_3">根据：请求返回</h3>
+
+<p>通过 Kong 网关监控大盘，我们可以看到整体请求处理详情。在这个基础上，可以尝试做一个请求正常处理（2xx 返回）或异常处理（5xx 返回）百分比。</p>
+
+<p><a href="https://imgtu.com/i/61qE3q"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e81528b8bb374cbf9e5013a5084f6709%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qE3q.md.jpg"/></a></p>
+
+<p>针对部分核心服务，根据请求返回施加报警，比如说请求正常处理（2xx 返回）百分比低于 99%时 触发告警，请求异常处理（5xx 返回）百分比高于 1% 时触发告警等。</p>
+
+<p><a href="https://imgtu.com/i/61qACn"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/824d262b1c804f8181dcc5e45d7558e8%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qACn.md.jpg"/></a></p>
+
+<h3 id="toc_4">根据：请求时延</h3>
+
+<p><a href="https://imgtu.com/i/61qiNj"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/b749bfe262d644888c4e6f17e5b15001%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qiNj.md.jpg"/></a></p>
+
+<p><a href="https://imgtu.com/i/61qVg0"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/11d9d409a3254be98fb8f8a6e943363f%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qVg0.md.jpg"/></a></p>
 
 <p>针对部分核心服务，根据请求时延施加报警，比如说上图中的服务响应时间平时是 50ms 以下，我们可以设置一个 p95 线 500ms 时延的报警，当请求时延明显高于平常，很可能已经出现了问题，这个有助于我们提前发现问题。</p>
 
-<h2 id="toc_3">Kong 网关资源占用</h2>
+<h2 id="toc_5">Kong 网关资源占用</h2>
 
 <p>一般 K8s 集群都会有节点的资源使用告警（CPU, 内存，磁盘等）和 Pod 资源使用告警（CPU，内存等）。Kong 网关也是以 Pod 形式运行，只要合理配置 CPU 和内存规格即可，报警可以参照集群默认告警。另外，因为 Kong 作为网关，是整个集群服务流量的进出口，因此也需要配置进出流量的监控。譬如说预防单个服务异常大流量打满带宽，导致其他正常服务受影响。</p>
 
-<p><img src="media/16145655266226/16145677991417.jpg" alt="Kong 实例监控图"/></p>
+<p><a href="https://imgtu.com/i/61qF4s"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f9c49cb5f7fd4900ba582de6ac7ec356%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qF4s.md.jpg"/></a></p>
 
-<h2 id="toc_4">个别服务独占 SLB</h2>
+<h2 id="toc_6">个别服务独占 SLB</h2>
 
 <p>业务服务通过 域名 -&gt; SLB -&gt;  K8s Kong 网关，网关是共享的，但是 SLB 可以是共享也可以是独立的。</p>
 
@@ -164,7 +178,7 @@
 
 <p>注：关于 SLB 的建立详见上一篇。</p>
 
-<h2 id="toc_5">K8s 日常操作对 Kong 网关的影响</h2>
+<h2 id="toc_7">K8s 日常操作对 Kong 网关的影响</h2>
 
 <p>注：这里我们假设 Kong 网关是以 Deployment 的形式部署的。</p>
 
@@ -172,16 +186,18 @@
 
 <p><strong>问题#1</strong>：重启节点前，必须先迁移走所有实例 Pod。而迁移 Kong Pod 时，则优先需要摘除网关流量。如何在摘除 SLB 转发到某节点的流量？</p>
 
-<p>阿里云里对应 K8s 的 SLB 是通过虚拟服务器组找到后端承载实例，如下图<br/>
-<img src="media/16145655266226/16145702067793.jpg" alt="SLB 虚拟服务器组"/></p>
+<p>阿里云里对应 K8s 的 SLB 是通过虚拟服务器组找到后端承载实例，如下图</p>
+
+<p><a href="https://imgtu.com/i/61qnDU"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/5048633cda58428b89d51c9630b937df%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qnDU.md.jpg"/></a></p>
 
 <p>一种简单的办法是手动调整权重，待整个操作结束后在恢复权重，但这个方法在流程上不是很搭。<br/>
 另外我推荐的办法是：<a href="https://help.aliyun.com/document_detail/86531.html">自动移除SLB后端unschedulable状态的节点</a>。</p>
 
-<ul>
-<li>kubectl cordon与kubectl drain命令会将节点置为unschedulable状态，默认service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的取值为off，此时不会将处于unschedulable状态的节点从SLB的后端服务器组移除。</li>
-<li>若需要从SLB的后端服务器组移除unschedulable状态的节点，请将service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的的取值设置为on。</li>
-</ul>
+<blockquote>
+<p>kubectl cordon与kubectl drain命令会将节点置为unschedulable状态，默认service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的取值为off，此时不会将处于unschedulable状态的节点从SLB的后端服务器组移除。</p>
+
+<p>若需要从SLB的后端服务器组移除unschedulable状态的节点，请将service.beta.kubernetes.io/alibaba-cloud-loadbalancer-remove-unscheduled-backend的的取值设置为on。</p>
+</blockquote>
 
 <pre><code class="language-text">apiVersion: v1
 kind: Service
@@ -230,21 +246,20 @@ spec:
 
 <p>再补充：如果想简化操作，我建议在流量低谷执行。</p>
 
-<h2 id="toc_6">业务 SLB 相关</h2>
+<h2 id="toc_8">业务 SLB 相关</h2>
 
-<h3 id="toc_7">请求日志分析</h3>
+<h3 id="toc_9">请求日志分析</h3>
 
 <p>上面说了我们可以为重要的服务配置独占的 SLB，那么我推荐是 7 层的（应用层的），这样我们可以开启阿里云自带的日志分析功能。</p>
 
-<p><img src="media/16145655266226/16145762308837.jpg" alt="SLB access log"/></p>
+<p><a href="https://imgtu.com/i/61qmuT"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/4e32aa796fb54e039ffbf9281d70ff5c%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qmuT.md.jpg"/></a></p>
 
-<p><img src="media/16145655266226/16145764647658.jpg" alt="SLB analysis"/></p>
-
-<p>通过简单的 query 语法，就能对业务请求有一定的了解和分析，对业务开发者而言是很有帮助的。</p>
+<p><a href="https://imgtu.com/i/61qZvV"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/9c8e2c52482b4689aec897c56be8dbf8%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qZvV.md.jpg"/></a><br/>
+通过简单的 query 语法，就能对业务请求有一定的了解和分析，对业务开发者而言是很有帮助的。</p>
 
 <p>注：7 层的 SLB 带来的一个坏处时，统一服务的，不同域名的 HTTPS 请求，就需要多个 SLB 了。如果是 4 层的 SLB 的话，就没有这方面的问题。</p>
 
-<h3 id="toc_8">业务 SLB 的监控和报警</h3>
+<h3 id="toc_10">业务 SLB 的监控和报警</h3>
 
 <p>阿里云 SLB 监控和报警参见文档即可，这里就不展开了</p>
 
@@ -369,7 +384,7 @@ spec:
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  

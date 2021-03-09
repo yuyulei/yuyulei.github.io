@@ -184,17 +184,17 @@ spec:
 
 <p>service.yaml 创建的 SLB 就是专门为了兼容 K8s 的场景而设计的。这种 SLB 后端不再是固定的 ECS，而是 “虚拟服务器组”。阿里云文档中这样描述：</p>
 
-<pre><code class="language-text">负载均衡默认是在实例维度上维护后端服务器组，即实例下的所有监听都使用相同的后端服务器组。虚拟服务器组允许用户在监听维度上个性化定义服务器组，即实例下的不同监听可使用不同的后端服务器组，可满足域名和URL转发个性化需求。
-</code></pre>
+<blockquote>
+<p>负载均衡默认是在实例维度上维护后端服务器组，即实例下的所有监听都使用相同的后端服务器组。虚拟服务器组允许用户在监听维度上个性化定义服务器组，即实例下的不同监听可使用不同的后端服务器组，可满足域名和URL转发个性化需求。</p>
+</blockquote>
 
 <p>“虚拟服务器” 是一种规则，通过这规则找到符合要求的后端实例，比如说这个规则是 K8s 集群的所有工作的节点。</p>
 
-<p><img src="media/16145789246768/16145806769408.jpg" alt="负载均衡虚拟服务器组"/></p>
+<p><a href="https://imgtu.com/i/61qPEQ"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/47982e3a614141a4804e6be41f2cae5d%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qPEQ.md.jpg"/></a></p>
 
 <p>这个端口不是业务服务的端口，然是 Service 暴露的端口。</p>
 
-<pre><code class="language-text">![-w1103](media/16145789246768/16145809255077.jpg)
-</code></pre>
+<p><a href="https://imgtu.com/i/61q9Hg"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2ff3160d50dd41f69d5f365e898244f5%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61q9Hg.md.jpg"/></a></p>
 
 <p>另外，虚拟服务器组与后端实例的绑定建立起来，后端实例的变动会同步到 SLB 上。反过来，我们不要主动去修改 SLB 的配置，避免和后端实例起冲突。</p>
 
@@ -319,7 +319,7 @@ spec:
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  

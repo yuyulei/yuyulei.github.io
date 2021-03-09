@@ -252,22 +252,23 @@
 
 <p>浏览器访问 localhost:8337</p>
 
-<p><img src="media/16106134534236/16138078982208.jpg" alt="konga UI"/></p>
+<p><a href="https://imgtu.com/i/61bf91"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/1260dcb420684526b4ab1680de6f3358%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bf91.md.jpg"/></a></p>
 
 <h2 id="toc_7">回到阿里云</h2>
 
 <p>现方案链路如下</p>
 
-<p><img src="media/16106134534236/16138098917551.jpg" alt="请求概览#1" style="width:300px;"/></p>
+<p><a href="https://imgtu.com/i/61bRhR"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/f17411c12885471393c98d2ed0f966fa%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bRhR.jpg"/></a></p>
 
 <p>上面的方式是没有问题的，但是我们是利用阿里云提供的请求概览，请求日志分析等功能，我们选在把 Kong 网关接在集群默认 Nginx Ingress Controller 之后（阿里云中的 K8s 集群会默认自带一个 Nginx Ingress Controller）。</p>
 
-<p><img src="media/16106134534236/16138108919231.jpg" alt="请求概览#2" style="width:400px;"/></p>
+<p><a href="https://imgtu.com/i/61b2N9"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/57a4a8a9732843b5a89001906169bdc8%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61b2N9.md.jpg"/></a></p>
 
 <p>我们把 Kong 作为一个特殊的服务，承载所有业务请求，然后 Kong 实例根据保存的路由关系，选择将请求转发到对应方后端实例上。通过阿里云默认负载均衡对所有请求加以分析和统计。</p>
 
-<p>下面是请求概览的展示，十分适合业务开发人员的查阅。<br/>
-<img src="media/16106134534236/16138116685705.jpg" alt="请求概览统计" style="width:600px;"/></p>
+<p>下面是请求概览的展示，十分适合业务开发人员的查阅。</p>
+
+<p><a href="https://imgtu.com/i/61bonO"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/222d7e10cbc749c6ab00ee06cfd2f047%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bonO.md.jpg"/></a></p>
 
 <h3 id="toc_8">调整细节</h3>
 
@@ -303,8 +304,9 @@ spec:
 
 <p>同理，具体某个服务的路由规则通过 K8s Ingress 和 <code>kubernetes.io/ingress.class: kong</code> 注册到 Kong Ingress Controller 之下。</p>
 
-<p>一环扣一环，将整个链路连起来。但我们注册路由规则时注意，前者注册 NIC 时可以使用通配符，后者注册 KIC 时可以细化，如下<br/>
-<img src="media/16106134534236/16138129583236.jpg" alt="注册路由规则"/></p>
+<p>一环扣一环，将整个链路连起来。但我们注册路由规则时注意，前者注册 NIC 时可以使用通配符，后者注册 KIC 时可以细化，如下</p>
+
+<p><a href="https://imgtu.com/i/61b5jK"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/e02d5eebd34c4868a551e69dadb821e3%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61b5jK.jpg"/></a></p>
 
 <h2 id="toc_9">总结</h2>
 
@@ -431,7 +433,7 @@ spec:
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  

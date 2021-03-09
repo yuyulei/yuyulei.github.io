@@ -147,8 +147,9 @@
 
 <p>K8s 官方文档：<a href="https://kubernetes.io/zh/docs/tasks/access-application-cluster/create-external-load-balancer/#%E4%BF%9D%E7%95%99%E5%AE%A2%E6%88%B7%E7%AB%AF%E6%BA%90-ip">保留客户端源 IP</a>。</p>
 
-<pre><code class="language-text">service.spec.externalTrafficPolicy - 表示此服务是否希望将外部流量路由到节点本地或集群范围的端点。 有两个可用选项：Cluster（默认）和 Local。 Cluster 隐藏了客户端源 IP，可能导致第二跳到另一个节点，但具有良好的整体负载分布。 Local 保留客户端源 IP 并避免 LoadBalancer 和 NodePort 类型服务的第二跳， 但存在潜在的不均衡流量传播风险。
-</code></pre>
+<blockquote>
+<p>service.spec.externalTrafficPolicy - 表示此服务是否希望将外部流量路由到节点本地或集群范围的端点。 有两个可用选项：Cluster（默认）和 Local。 Cluster 隐藏了客户端源 IP，可能导致第二跳到另一个节点，但具有良好的整体负载分布。 Local 保留客户端源 IP 并避免 LoadBalancer 和 NodePort 类型服务的第二跳， 但存在潜在的不均衡流量传播风险。</p>
+</blockquote>
 
 <p>阿里云文档: <a href="https://developer.aliyun.com/article/720357">容器服务中多个SLB负载均衡并透传源 IP</a>。</p>
 
@@ -156,7 +157,7 @@
 
 <p>注意：负载均衡将请求负载到节点的方式，是由云厂商决定的。以阿里云为例，负载均衡支持后端是一个虚拟服务器组，该组包含了 K8s 集群中所有的普通节点，如果集群出现节点的扩缩，该组能及时同步。</p>
 
-<p><img src="media/16141518827992/16142190110823.jpg" alt="externalTrafficPolicy is Local"/></p>
+<p><a href="https://imgtu.com/i/61qSu8"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/2430f672a30e47ffbebc9c6eb1059c55%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qSu8.md.jpg"/></a></p>
 
 <p>如上图所示，负载均衡会均分流量到各个普通节点，单个节点上的 Kong Pod 会均分节点流量，从整体上看，会出现 Kong Pod 接收流量不均的问题，更为严重的是，上图最右边的节点上没有  Kong Pod 实例，那么这节点上的流量都会异常。这个就是前面所说的负载不均问题。</p>
 
@@ -205,7 +206,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
 
 <p>我们在 K8s 集群部署 echo 服务，并配置路由将其暴露出来。</p>
 
-<p><img src="media/16141518827992/16142215491432.jpg" alt="echo for client ip"/></p>
+<p><a href="https://imgtu.com/i/61qpDS"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/82e2178ac5264e7090ef82d71c4fa5be%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61qpDS.jpg"/></a></p>
 
 <p>我们看到经过网关的时候，会在 <code>x-forwarded-for</code> header 上记录转发网关的地址，然后从 <code>x-real-ip</code> header 上可以找到客户端 IP。</p>
 
@@ -223,7 +224,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
         <p class="text-left" style="padding:15px 0px;">
       
           <a href="16142224354062.html" 
-          title="Previous Post: 如何让 UDP 实现 TCP">&laquo; 如何让 UDP 实现 TCP</a>
+          title="Previous Post: 面试（一）：如何让 UDP 实现 TCP">&laquo; 面试（一）：如何让 UDP 实现 TCP</a>
       
         </p>
         </div>
@@ -334,7 +335,7 @@ Kong 论坛讨论：<a href="https://discuss.konghq.com/t/how-to-forward-clients
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  

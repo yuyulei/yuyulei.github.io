@@ -134,7 +134,7 @@
 
 <p>后端服务的结构是 nginx + fpm，整体打包成一个镜像，以 deployment 的形式在 K8s 集群中部署。链路架构为</p>
 
-<p><img src="media/16140686104928/16140688900376.jpg" alt="请求链路流程"/></p>
+<p><a href="https://imgtu.com/i/61bX9I"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/553171451510473392caf5b1ef0b0e12%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bX9I.md.jpg"/></a></p>
 
 <p>关于为什么在 Kong 网关前嵌套一个阿里云默认 SLB 的原因在之前的文章中有提到，这个不影响本次的验收。</p>
 
@@ -157,7 +157,7 @@
 
 <p>原因分析：Kong 的 Controller 需要将 Pods 起停信息同步到 Kong 中去，两边信息可能存在不一致。后端实例已经发生更新，但 Kong 中还保留着老实例对应的 target 信息。此时，如果请求转发到该 target，此时其后端实例有可能正在 Terminating，也有可能已经被清理了，那么该请求就会出现异常。</p>
 
-<p><img src="media/16140686104928/16140719208088.jpg" alt="problem when updating"/></p>
+<p><a href="https://imgtu.com/i/61bL4A"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/de0338841e2f4b06809d8eb213eb59ad%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bL4A.md.jpg"/></a></p>
 
 <p>我的思路是通过延长后端实例实际 graceful shutdow 时间，当出现上述情况时，我们还保留着老版本实例，虽然它正处于 Terminating 状态，但仍具备处理请求的能力。但是我不能直接修改程序的 graceful shutdown 的逻辑，我通过 K8s Pod 生命周期中支持的 <code>preStop</code> 功能实现。</p>
 
@@ -314,7 +314,7 @@
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  

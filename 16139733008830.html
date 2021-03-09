@@ -138,8 +138,9 @@
 
 <p>在谈监控前，我们首先要完善 Prometheus（这个 Prometheus 不是指插件，而是监控采集工具），我这里是直接使用阿里云的监控采集，省去了 Prometheus 的安装以及数据存储问题。</p>
 
-<p>如果是自己动手部署话，就需要通过 Kong Service 地址 + 监控 Port 的形式准确采集即可。成功的话，大概会和下图一样：<br/>
-<img src="media/16139733008830/16139771292593.jpg" alt="Grafana without Prometheus Plugin"/></p>
+<p>如果是自己动手部署话，就需要通过 Kong Service 地址 + 监控 Port 的形式准确采集即可。成功的话，大概会和下图一样：</p>
+
+<p><a href="https://imgtu.com/i/61b7He"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/6a987e86519848ceb2a2ec6e79dae600%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61b7He.md.jpg"/></a></p>
 
 <p>只有 Kong 自身的监控数据，并不涉及请求相关的。</p>
 
@@ -157,10 +158,11 @@
 
 <p>通过 Konga UI，我们可以很方便的启用插件，注意插件也是分全局插件和针对性的插件，下午我们直接创建了一个全局的 Prometheus Plugin。</p>
 
-<p><img src="media/16139733008830/16139745049283.jpg" alt="Add Prometheus Plugin"/></p>
+<p><a href="https://imgtu.com/i/61bTBD"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/35015cb8626b4294a41eb077b97c0c20%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bTBD.md.jpg"/></a></p>
 
-<p>然后在去查看 Grafana 监控，就可以看到请求相关的监控了。<br/>
-<img src="media/16139733008830/16139772451414.jpg" alt="Grafana with Prometheus Plugin"/></p>
+<p>然后在去查看 Grafana 监控，就可以看到请求相关的监控了。</p>
+
+<p><a href="https://imgtu.com/i/61bbAH"><img src="https://p3-juejin.byteimg.com/tos-cn-i-k3u1fbpfcp/76c8b91a9e7c47c9bb2ffa1b50470b0b%7Etplv-k3u1fbpfcp-zoom-1.image" alt="61bbAH.md.jpg"/></a></p>
 
 <h2 id="toc_3">其他插件的操作</h2>
 
@@ -297,7 +299,7 @@
 		  
 		      
 			      <li class="post">
-			        <a href="16142224354062.html">如何让 UDP 实现 TCP</a>
+			        <a href="16142224354062.html">面试（一）：如何让 UDP 实现 TCP</a>
 			      </li>
 		     
 		  
